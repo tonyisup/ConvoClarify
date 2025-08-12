@@ -3,8 +3,12 @@ import { AnalysisIssue, AnalysisSummary, ConversationMessage } from "@shared/sch
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
+  apiKey: process.env.OPENAI_API_KEY
 });
+
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is not set");
+}
 
 interface AnalysisResult {
   speakers: string[];
@@ -20,9 +24,9 @@ export async function analyzeConversation(
   language: string = "english"
 ): Promise<AnalysisResult> {
   try {
-    // First, parse the conversation to identify speakers and messages
+    // First, test API key and parse the conversation to identify speakers and messages
     const parseResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini", // Using gpt-4o-mini for better compatibility and lower cost
       messages: [
         {
           role: "system",
@@ -98,7 +102,7 @@ Return JSON in this exact format:
 }`;
 
     const analysisResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini", // Using gpt-4o-mini for better compatibility and lower cost
       messages: [
         {
           role: "system",
@@ -128,7 +132,17 @@ Return JSON in this exact format:
       clarityScore: analysisResult.clarityScore || 0
     };
     
-  } catch (error) {
-    throw new Error("Failed to analyze conversation: " + (error as Error).message);
+  } catch (error: any) {
+    console.error("OpenAI API Error:", error);
+    
+    if (error.status === 401) {
+      throw new Error("Invalid OpenAI API key. Please check that your API key is correct and has the necessary permissions.");
+    } else if (error.status === 429) {
+      throw new Error("OpenAI API rate limit exceeded. Please try again in a moment.");
+    } else if (error.status === 403) {
+      throw new Error("OpenAI API access denied. Please check your API key permissions.");
+    } else {
+      throw new Error("Failed to analyze conversation: " + (error.message || "Unknown error"));
+    }
   }
 }

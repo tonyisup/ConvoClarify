@@ -30,12 +30,14 @@ Preferred communication style: Simple, everyday language.
 - **Storage Strategy**: Hybrid approach supporting both PostgreSQL (production) and in-memory storage (development)
 
 ### AI Integration
-- **AI Service**: OpenAI GPT-4o integration for conversation analysis
-- **Analysis Pipeline**: Multi-step process including conversation parsing, speaker identification, issue detection, and summary generation
+- **AI Service**: OpenAI GPT-4o integration for conversation analysis and image text extraction
+- **Vision Capabilities**: GPT-4o vision model for extracting text from conversation screenshots
+- **Analysis Pipeline**: Multi-step process including image text extraction, conversation parsing, speaker identification, issue detection, and summary generation
 - **Response Structure**: Structured analysis results including clarity scores, categorized issues, and detailed summaries
 
 ### Key Features
-- **Conversation Input**: Multi-format text input with configurable analysis depth and language settings
+- **Conversation Input**: Multi-format text input and screenshot upload with configurable analysis depth and language settings
+- **Screenshot Analysis**: AI-powered text extraction from conversation screenshots using GPT-4 vision capabilities
 - **Real-time Analysis**: Asynchronous processing with loading states and progress indicators
 - **Issue Classification**: Categorized communication issues (assumption gaps, ambiguous language, tone mismatches, implicit meanings)
 - **Severity Scoring**: Three-tier issue classification (critical, moderate, minor) with visual indicators

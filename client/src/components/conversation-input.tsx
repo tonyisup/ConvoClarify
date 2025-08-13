@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Upload, Clipboard, Search } from "lucide-react";
+import { Upload, Clipboard, Search, MessageSquare, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import ImageUpload from "@/components/image-upload.tsx";
 
 interface ConversationInputProps {
   onAnalysisStart: () => void;
@@ -16,12 +18,14 @@ interface ConversationInputProps {
 
 export default function ConversationInput({ onAnalysisStart, onAnalysisComplete }: ConversationInputProps) {
   const [conversationText, setConversationText] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [inputMode, setInputMode] = useState<"text" | "image">("text");
   const [analysisDepth, setAnalysisDepth] = useState("standard");
   const [language, setLanguage] = useState("english");
   const { toast } = useToast();
 
   const createConversationMutation = useMutation({
-    mutationFn: async (data: { text: string; analysisDepth: string; language: string }) => {
+    mutationFn: async (data: { text: string; imageUrl?: string; analysisDepth: string; language: string }) => {
       const response = await apiRequest("POST", "/api/conversations", data);
       return response.json();
     },
@@ -35,10 +39,10 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
   });
 
   const handleAnalyze = async () => {
-    if (!conversationText.trim()) {
+    if (!conversationText.trim() && !selectedImage) {
       toast({
         title: "Error",
-        description: "Please enter a conversation to analyze.",
+        description: "Please enter a conversation or upload a screenshot to analyze.",
         variant: "destructive",
       });
       return;
@@ -49,7 +53,8 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
 
       // Create conversation
       const conversation = await createConversationMutation.mutateAsync({
-        text: conversationText,
+        text: conversationText || "Text extracted from image",
+        imageUrl: selectedImage || undefined,
         analysisDepth,
         language,
       });
@@ -93,42 +98,68 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Conversation Input</h2>
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="text-sm text-primary hover:text-blue-700 font-medium">
-                <Upload className="w-4 h-4 mr-1" />
-                Upload File
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handlePaste}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                <Clipboard className="w-4 h-4 mr-1" />
-                Paste
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handlePaste}
+              className="text-sm text-gray-500 hover:text-gray-700"
+              data-testid="button-paste-text"
+            >
+              <Clipboard className="w-4 h-4 mr-1" />
+              Paste
+            </Button>
           </div>
-          
-          <div className="space-y-4">
-            <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">Conversation Text</Label>
-              <Textarea 
-                value={conversationText}
-                onChange={(e) => setConversationText(e.target.value)}
-                className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-mono text-sm leading-relaxed"
-                placeholder={`Paste your conversation here...
+
+          <Tabs value={inputMode} onValueChange={(value) => setInputMode(value as "text" | "image")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2" data-testid="tabs-input-mode">
+              <TabsTrigger value="text" className="flex items-center space-x-2" data-testid="tab-text-input">
+                <MessageSquare className="w-4 h-4" />
+                <span>Text Input</span>
+              </TabsTrigger>
+              <TabsTrigger value="image" className="flex items-center space-x-2" data-testid="tab-image-input">
+                <Camera className="w-4 h-4" />
+                <span>Screenshot</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="text" className="space-y-4 mt-4">
+              <div>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">Conversation Text</Label>
+                <Textarea 
+                  value={conversationText}
+                  onChange={(e) => setConversationText(e.target.value)}
+                  className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-mono text-sm leading-relaxed"
+                  placeholder={`Paste your conversation here...
 
 Example format:
 John: I think we should proceed with the original plan.
 Sarah: That sounds reasonable, but I have some concerns about timing.
 John: What do you mean by reasonable? I thought you were on board.
 Sarah: I am supportive, but reasonable doesn't mean without questions.`}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                💡 Tip: Use "Name:" format to separate speakers, or our AI will automatically detect conversation patterns
-              </p>
-            </div>
+                  data-testid="textarea-conversation-text"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Tip: Use "Name:" format to separate speakers, or our AI will automatically detect conversation patterns
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="image" className="space-y-4 mt-4">
+              <div>
+                <Label className="block text-sm font-medium text-gray-700 mb-2">Upload Screenshot</Label>
+                <ImageUpload
+                  onImageSelect={setSelectedImage}
+                  onImageRemove={() => setSelectedImage(null)}
+                  selectedImage={selectedImage}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Tip: Works with screenshots from WhatsApp, Discord, Slack, Teams, and other messaging apps
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="space-y-4 mt-6">
 
             <div className="flex items-center space-x-4">
               <div className="flex-1">
@@ -164,9 +195,12 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.`}
               onClick={handleAnalyze}
               disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending}
               className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+              data-testid="button-analyze-conversation"
             >
               <Search className="w-4 h-4" />
-              <span>Analyze Conversation</span>
+              <span>
+                {selectedImage ? "Analyze Screenshot" : "Analyze Conversation"}
+              </span>
             </Button>
           </div>
         </CardContent>
@@ -182,8 +216,8 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.`}
                 <span className="text-primary text-sm font-semibold">1</span>
               </div>
               <div>
-                <h4 className="font-medium text-gray-900">Parse Conversation</h4>
-                <p className="text-sm text-gray-600">Our AI identifies different speakers and conversation flow</p>
+                <h4 className="font-medium text-gray-900">Extract & Parse</h4>
+                <p className="text-sm text-gray-600">Extract text from screenshots or parse typed conversations to identify speakers</p>
               </div>
             </div>
             
@@ -203,7 +237,7 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.`}
               </div>
               <div>
                 <h4 className="font-medium text-gray-900">Identify Issues</h4>
-                <p className="text-sm text-gray-600">Highlight potential miscommunications with explanations</p>
+                <p className="text-sm text-gray-600">Highlight potential miscommunications with detailed explanations</p>
               </div>
             </div>
           </div>
@@ -212,8 +246,8 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.`}
             <div className="flex items-start space-x-2">
               <div className="text-blue-600 mt-0.5">💡</div>
               <div>
-                <h4 className="text-sm font-medium text-blue-900">Pro Tip</h4>
-                <p className="text-xs text-blue-700 mt-1">Include context like timestamps, emotions, or setting for more accurate analysis</p>
+                <h4 className="text-sm font-medium text-blue-900">Screenshot Support</h4>
+                <p className="text-xs text-blue-700 mt-1">Upload screenshots from WhatsApp, Discord, Slack, Teams, or any messaging app for instant analysis</p>
               </div>
             </div>
           </div>

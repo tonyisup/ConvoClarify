@@ -21,10 +21,40 @@ interface AnalysisResult {
 export async function analyzeConversation(
   text: string, 
   analysisDepth: string = "standard",
-  language: string = "english"
+  language: string = "english",
+  imageUrl?: string
 ): Promise<AnalysisResult> {
   try {
-    // First, test API key and parse the conversation to identify speakers and messages
+    let conversationText = text;
+    
+    // If image is provided, extract text from it first
+    if (imageUrl) {
+      const imageAnalysis = await openai.chat.completions.create({
+        model: "gpt-4o", // Need full gpt-4o for vision capabilities
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Extract all text from this screenshot. Focus on conversation messages, chat bubbles, or any text communication. Return the extracted text exactly as it appears, preserving the speaker names and message structure if visible."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageUrl
+                }
+              }
+            ]
+          }
+        ]
+      });
+      
+      const extractedText = imageAnalysis.choices[0].message.content;
+      conversationText = extractedText || text; // Fallback to original text if extraction fails
+    }
+    
+    // Parse the conversation to identify speakers and messages
     const parseResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Using gpt-4o-mini for better compatibility and lower cost
       messages: [
@@ -46,7 +76,7 @@ export async function analyzeConversation(
         },
         {
           role: "user",
-          content: `Parse this conversation:\n\n${text}`
+          content: `Parse this conversation:\n\n${conversationText}`
         }
       ],
       response_format: { type: "json_object" },
@@ -110,7 +140,7 @@ Return JSON in this exact format:
         },
         {
           role: "user",
-          content: `Conversation to analyze:\n\n${text}\n\nSpeakers identified: ${parseResult.speakers?.join(", ")}`
+          content: `Conversation to analyze:\n\n${conversationText}\n\nSpeakers identified: ${parseResult.speakers?.join(", ")}`
         }
       ],
       response_format: { type: "json_object" },

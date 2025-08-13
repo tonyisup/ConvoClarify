@@ -53,7 +53,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analysisResult = await analyzeConversation(
         conversation.text,
         conversation.analysisDepth,
-        conversation.language
+        conversation.language,
+        conversation.imageUrl || undefined
       );
 
       // Store the analysis

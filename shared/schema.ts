@@ -6,6 +6,7 @@ import { z } from "zod";
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   text: text("text").notNull(),
+  imageUrl: text("image_url"), // Optional screenshot URL
   analysisDepth: text("analysis_depth").notNull().default("standard"),
   language: text("language").notNull().default("english"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -23,8 +24,11 @@ export const analyses = pgTable("analyses", {
 
 export const insertConversationSchema = createInsertSchema(conversations).pick({
   text: true,
+  imageUrl: true,
   analysisDepth: true,
   language: true,
+}).extend({
+  imageUrl: z.string().optional(),
 });
 
 export const insertAnalysisSchema = createInsertSchema(analyses).pick({

@@ -48,6 +48,7 @@ export class MemStorage implements IStorage {
     const conversation: Conversation = {
       id,
       text: insertConversation.text,
+      imageUrl: insertConversation.imageUrl || null,
       analysisDepth: insertConversation.analysisDepth || "standard",
       language: insertConversation.language || "english",
       createdAt: new Date(),

@@ -97,6 +97,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Re-analyze conversation with corrected speaker/message data
+  app.post("/api/conversations/:id/reanalyze", async (req, res) => {
+    try {
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      const { speakers, messages } = req.body;
+
+      // Create a corrected conversation text from the messages
+      const correctedText = messages.map((msg: any) => 
+        `${msg.speaker}: ${msg.content}`
+      ).join('\n');
+
+      // Perform analysis using the corrected data
+      const analysisResult = await analyzeConversation(
+        correctedText,
+        conversation.analysisDepth,
+        conversation.language
+      );
+
+      // Delete existing analysis to create fresh one
+      const existingAnalysis = await storage.getAnalysisByConversationId(conversation.id);
+      if (existingAnalysis) {
+        await storage.deleteAnalysis(existingAnalysis.id);
+      }
+
+      // Store the new analysis
+      const analysisData = insertAnalysisSchema.parse({
+        conversationId: conversation.id,
+        speakers: speakers,
+        issues: analysisResult.issues,
+        summary: analysisResult.summary,
+        clarityScore: analysisResult.clarityScore,
+      });
+
+      const analysis = await storage.createAnalysis(analysisData);
+      
+      // Return analysis with corrected messages for frontend
+      res.json({
+        ...analysis,
+        messages: messages
+      });
+
+    } catch (error) {
+      console.error("Failed to reanalyze conversation:", error);
+      res.status(500).json({ 
+        message: "Failed to reanalyze conversation",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

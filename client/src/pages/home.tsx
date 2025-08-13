@@ -3,20 +3,69 @@ import { MessageSquare, Settings, HelpCircle } from "lucide-react";
 import ConversationInput from "@/components/conversation-input.tsx";
 import AnalysisResults from "@/components/analysis-results.tsx";
 import LoadingModal from "@/components/loading-modal.tsx";
+import ConversationEditor from "@/components/conversation-editor.tsx";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingData, setEditingData] = useState<{
+    conversationId: string;
+    speakers: string[];
+    messages: any[];
+    originalData: any;
+  } | null>(null);
 
   const handleAnalysisComplete = (data: any) => {
-    setAnalysisData(data);
     setIsAnalyzing(false);
+    // If we have parsed messages, show the editor first
+    if (data.messages && data.messages.length > 0) {
+      setEditingData({
+        conversationId: data.conversationId || data.id,
+        speakers: data.speakers || [],
+        messages: data.messages || [],
+        originalData: data
+      });
+      setIsEditing(true);
+    } else {
+      setAnalysisData(data);
+    }
   };
 
   const handleAnalysisStart = () => {
     setIsAnalyzing(true);
     setAnalysisData(null);
+  };
+
+  const handleEditingSave = async (speakers: string[], messages: any[]) => {
+    setIsEditing(false);
+    setIsAnalyzing(true);
+    
+    try {
+      // Re-run analysis with corrected data
+      const response = await fetch(`/api/conversations/${editingData?.conversationId}/reanalyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ speakers, messages })
+      });
+      
+      const result = await response.json();
+      setAnalysisData(result);
+    } catch (error) {
+      console.error('Reanalysis failed:', error);
+      // Fallback to original data
+      setAnalysisData(editingData?.originalData);
+    }
+    
+    setIsAnalyzing(false);
+    setEditingData(null);
+  };
+
+  const handleEditingCancel = () => {
+    setIsEditing(false);
+    setAnalysisData(editingData?.originalData);
+    setEditingData(null);
   };
 
   return (
@@ -47,15 +96,26 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <ConversationInput 
-          onAnalysisStart={handleAnalysisStart}
-          onAnalysisComplete={handleAnalysisComplete}
-        />
-        
-        {analysisData && (
-          <div className="mt-8">
-            <AnalysisResults analysis={analysisData} />
-          </div>
+        {isEditing ? (
+          <ConversationEditor 
+            speakers={editingData?.speakers || []}
+            messages={editingData?.messages || []}
+            onSave={handleEditingSave}
+            onCancel={handleEditingCancel}
+          />
+        ) : (
+          <>
+            <ConversationInput 
+              onAnalysisStart={handleAnalysisStart}
+              onAnalysisComplete={handleAnalysisComplete}
+            />
+            
+            {analysisData && (
+              <div className="mt-8">
+                <AnalysisResults analysis={analysisData} />
+              </div>
+            )}
+          </>
         )}
       </main>
 

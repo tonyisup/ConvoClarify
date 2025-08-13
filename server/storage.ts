@@ -13,6 +13,7 @@ export interface IStorage {
   // Analysis methods
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
   getAnalysisByConversationId(conversationId: string): Promise<Analysis | undefined>;
+  deleteAnalysis(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -80,6 +81,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.analyses.values()).find(
       (analysis) => analysis.conversationId === conversationId,
     );
+  }
+
+  async deleteAnalysis(id: string): Promise<void> {
+    this.analyses.delete(id);
   }
 }
 

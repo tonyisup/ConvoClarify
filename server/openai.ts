@@ -35,6 +35,58 @@ function sanitizeContentForAnalysis(text: string): string {
   return sanitized;
 }
 
+function normalizespeakers(parseResult: any, isFromImage: boolean): { speakers: string[], messages: any[] } {
+  const speakers = parseResult.speakers || [];
+  const messages = parseResult.messages || [];
+  
+  // For image-based conversations, ensure proper speaker labeling
+  if (isFromImage) {
+    const speakerMap = new Map<string, string>();
+    let namedSpeakers: string[] = [];
+    let hasUnnamedSpeaker = false;
+    
+    // Identify named speakers and unnamed speakers
+    speakers.forEach((speaker: string) => {
+      if (speaker.includes(' ') || (!speaker.toLowerCase().includes('speaker') && !speaker.toLowerCase().includes('unnamed') && !speaker.toLowerCase().includes('you'))) {
+        namedSpeakers.push(speaker);
+      } else {
+        hasUnnamedSpeaker = true;
+      }
+    });
+    
+    // Create normalized speaker mapping
+    namedSpeakers.forEach((speaker, index) => {
+      speakerMap.set(speaker, `Speaker-${String.fromCharCode(65 + index)}`); // A, B, C...
+    });
+    
+    if (hasUnnamedSpeaker || speakers.some((s: string) => s.toLowerCase().includes('you') || s.toLowerCase().includes('unnamed'))) {
+      const nextLetter = String.fromCharCode(65 + namedSpeakers.length);
+      speakerMap.set('You', `Speaker-${nextLetter}`);
+      speakerMap.set('Unnamed', `Speaker-${nextLetter}`);
+      speakers.forEach((speaker: string) => {
+        if (speaker.toLowerCase().includes('speaker') || speaker.toLowerCase().includes('you') || speaker.toLowerCase().includes('unnamed')) {
+          speakerMap.set(speaker, `Speaker-${nextLetter}`);
+        }
+      });
+    }
+    
+    // Normalize messages
+    const normalizedMessages = messages.map((msg: any) => ({
+      ...msg,
+      speaker: speakerMap.get(msg.speaker) || msg.speaker
+    }));
+    
+    const normalizedSpeakers = Array.from(new Set(normalizedMessages.map((msg: any) => msg.speaker))).sort();
+    
+    return {
+      speakers: normalizedSpeakers,
+      messages: normalizedMessages
+    };
+  }
+  
+  return { speakers, messages };
+}
+
 export async function analyzeConversation(
   text: string, 
   analysisDepth: string = "standard",
@@ -58,7 +110,7 @@ export async function analyzeConversation(
             content: [
               {
                 type: "text",
-                text: "Please extract all text from this conversation screenshot. Focus on extracting dialogue, messages, or chat content. Preserve the speaker names and message structure if visible. This is for communication analysis purposes to help improve understanding between people."
+                text: "Please extract all text from this messaging app conversation screenshot. Pay attention to:\n\n1. Message content and order\n2. Any visible sender names or contact names\n3. Message positioning (left-aligned usually means other person, right-aligned usually means screenshot owner)\n4. Timestamps if visible\n\nFormat the output as a clear conversation transcript, indicating which messages are from named senders vs unnamed (screenshot owner). For example:\n\nLayne Villanueva: [message]\n[Unnamed/You]: [message]\n\nThis is for communication analysis to help people understand conversations better."
               },
               {
                 type: "image_url",
@@ -82,29 +134,45 @@ export async function analyzeConversation(
       messages: [
         {
           role: "system",
-          content: `You are a conversation parser. Parse the provided conversation text and identify speakers and their messages. Return JSON in this exact format:
+          content: `You are a conversation parser that specializes in analyzing messaging app conversations. Parse the provided conversation text and identify speakers and their messages.
+
+          For conversations from screenshots:
+          - If you see a person's name (like "John Smith") appearing as a sender, that person is "Speaker-A" 
+          - Messages that don't show a sender name (usually on the right side of chat apps) are from the screenshot owner and should be labeled "Speaker-B" 
+          - If both speakers have names visible, use their actual names
+          - If no names are visible, use "Speaker-A" and "Speaker-B"
+          - Look for visual cues like message bubbles being left-aligned (other person) vs right-aligned (screenshot owner)
+
+          Return JSON in this exact format:
           {
-            "speakers": ["Speaker1", "Speaker2"],
+            "speakers": ["Speaker-A", "Speaker-B"],
             "messages": [
               {
-                "speaker": "Speaker1",
+                "speaker": "Speaker-A",
                 "content": "message content",
                 "lineNumber": 1
               }
             ]
           }
           
-          If no clear speaker format is found, try to infer speakers from context or use "Speaker A", "Speaker B" etc.`
+          Always assign each message to the correct speaker based on context clues.`
         },
         {
           role: "user",
-          content: `Parse this conversation:\n\n${conversationText}`
+          content: `Parse this conversation (${imageUrl ? 'extracted from screenshot' : 'typed text'}):\n\n${conversationText}`
         }
       ],
       response_format: { type: "json_object" },
     });
 
     const parseResult = JSON.parse(parseResponse.choices[0].message.content || "{}");
+    
+    // Post-process speakers to ensure consistent naming
+    if (parseResult.speakers && parseResult.messages) {
+      const processedResult = normalizespeakers(parseResult, imageUrl ? true : false);
+      parseResult.speakers = processedResult.speakers;
+      parseResult.messages = processedResult.messages;
+    }
     
     // Then analyze for miscommunications
     const analysisPrompt = `You are a professional communication consultant helping people improve their conversations. Your role is to provide constructive analysis of communication patterns to help people understand each other better.

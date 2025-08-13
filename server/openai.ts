@@ -18,6 +18,23 @@ interface AnalysisResult {
   clarityScore: number;
 }
 
+function sanitizeContentForAnalysis(text: string): string {
+  // Remove potential personal information patterns while preserving conversation structure
+  let sanitized = text
+    // Replace phone numbers with placeholder
+    .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, "[PHONE_NUMBER]")
+    // Replace email addresses with placeholder  
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[EMAIL_ADDRESS]")
+    // Replace URLs with placeholder
+    .replace(/https?:\/\/[^\s]+/g, "[URL]")
+    // Replace credit card-like numbers
+    .replace(/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, "[CARD_NUMBER]")
+    // Replace SSN-like patterns
+    .replace(/\b\d{3}[-]?\d{2}[-]?\d{4}\b/g, "[SSN]");
+  
+  return sanitized;
+}
+
 export async function analyzeConversation(
   text: string, 
   analysisDepth: string = "standard",
@@ -25,7 +42,7 @@ export async function analyzeConversation(
   imageUrl?: string
 ): Promise<AnalysisResult> {
   try {
-    let conversationText = text;
+    let conversationText = sanitizeContentForAnalysis(text);
     
     // If image is provided, extract text from it first
     if (imageUrl) {
@@ -33,11 +50,15 @@ export async function analyzeConversation(
         model: "gpt-4o", // Need full gpt-4o for vision capabilities
         messages: [
           {
+            role: "system",
+            content: "You are a text extraction assistant. Your purpose is to help users extract text from conversation screenshots for legitimate communication analysis and improvement purposes. Extract text accurately and professionally."
+          },
+          {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Extract all text from this screenshot. Focus on conversation messages, chat bubbles, or any text communication. Return the extracted text exactly as it appears, preserving the speaker names and message structure if visible."
+                text: "Please extract all text from this conversation screenshot. Focus on extracting dialogue, messages, or chat content. Preserve the speaker names and message structure if visible. This is for communication analysis purposes to help improve understanding between people."
               },
               {
                 type: "image_url",
@@ -47,7 +68,8 @@ export async function analyzeConversation(
               }
             ]
           }
-        ]
+        ],
+        max_tokens: 1000
       });
       
       const extractedText = imageAnalysis.choices[0].message.content;
@@ -85,8 +107,9 @@ export async function analyzeConversation(
     const parseResult = JSON.parse(parseResponse.choices[0].message.content || "{}");
     
     // Then analyze for miscommunications
-    const analysisPrompt = `You are an expert communication analyst. Analyze this conversation for potential miscommunications, focusing on:
+    const analysisPrompt = `You are a professional communication consultant helping people improve their conversations. Your role is to provide constructive analysis of communication patterns to help people understand each other better.
 
+Analyze this conversation for potential miscommunications in these areas:
 1. Assumption gaps - when speakers assume shared understanding
 2. Ambiguous language - words/phrases that could be interpreted differently  
 3. Tone mismatches - defensive or unclear emotional responses
@@ -95,10 +118,7 @@ export async function analyzeConversation(
 Analysis depth: ${analysisDepth}
 Language: ${language}
 
-For each issue found, categorize it as critical/moderate/minor and explain:
-- Why it causes confusion
-- Different possible interpretations
-- Suggested improvements
+This analysis is for educational and communication improvement purposes. Focus on constructive feedback and clear explanations.
 
 Return JSON in this exact format:
 {
@@ -140,7 +160,7 @@ Return JSON in this exact format:
         },
         {
           role: "user",
-          content: `Conversation to analyze:\n\n${conversationText}\n\nSpeakers identified: ${parseResult.speakers?.join(", ")}`
+          content: `Please analyze this conversation for communication improvement purposes:\n\n${conversationText}\n\nSpeakers identified: ${parseResult.speakers?.join(", ")}\n\nNote: This is for educational analysis to help improve understanding between people.`
         }
       ],
       response_format: { type: "json_object" },
@@ -165,7 +185,16 @@ Return JSON in this exact format:
   } catch (error: any) {
     console.error("OpenAI API Error:", error);
     
-    if (error.status === 401) {
+    // Check if the error message contains content policy rejection
+    const errorMessage = error.message || "";
+    const isContentPolicyError = errorMessage.includes("I'm unable to fulfill your request") || 
+                                 errorMessage.includes("content policy") || 
+                                 errorMessage.includes("unable to assist") ||
+                                 error.status === 400;
+    
+    if (isContentPolicyError) {
+      throw new Error("The conversation content couldn't be analyzed. This may happen if the text contains sensitive information, personal data, or content that appears inappropriate to the AI. Try removing any personal details like names, phone numbers, or private information and try again.");
+    } else if (error.status === 401) {
       throw new Error("Invalid OpenAI API key. Please check that your API key is correct and has the necessary permissions.");
     } else if (error.status === 429) {
       throw new Error("OpenAI API rate limit exceeded. Please try again in a moment.");

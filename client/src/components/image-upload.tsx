@@ -1,30 +1,23 @@
 import { useState, useRef } from "react";
-import { Upload, Image, X } from "lucide-react";
+import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { Card } from "@/components/ui/card";
 
 interface ImageUploadProps {
-  onImageSelect: (imageUrl: string) => void;
+  onImageSelect: (imageDataUrl: string) => void;
   onImageRemove: () => void;
   selectedImage: string | null;
 }
 
 export default function ImageUpload({ onImageSelect, onImageRemove, selectedImage }: ImageUploadProps) {
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid File",
-        description: "Please select an image file (PNG, JPG, etc.)",
-        variant: "destructive",
-      });
       return;
     }
 
-    // Convert to base64 for display and API call
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
@@ -33,117 +26,116 @@ export default function ImageUpload({ onImageSelect, onImageRemove, selectedImag
     reader.readAsDataURL(file);
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (imageFile) {
+      handleFileSelect(imageFile);
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    setIsDragOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    setIsDragOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
     }
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      handleFileSelect(files[0]);
-    }
-  };
-
-  const handleRemove = () => {
-    onImageRemove();
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
   };
 
   if (selectedImage) {
     return (
-      <div className="relative">
-        <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Screenshot uploaded</span>
+      <Card className="p-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <ImageIcon className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-gray-700">Screenshot uploaded</span>
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleRemove}
-              className="text-gray-500 hover:text-red-500"
+              onClick={onImageRemove}
+              className="text-red-600 hover:text-red-700"
               data-testid="button-remove-image"
             >
               <X className="w-4 h-4" />
             </Button>
           </div>
-          <img 
-            src={selectedImage} 
-            alt="Uploaded screenshot" 
-            className="max-h-48 max-w-full rounded-lg object-contain"
-            data-testid="img-uploaded-screenshot"
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            The AI will extract text from this image and analyze the conversation
+          
+          <div className="relative">
+            <img
+              src={selectedImage}
+              alt="Uploaded conversation screenshot"
+              className="w-full max-h-64 object-contain rounded-lg border border-gray-200"
+              data-testid="img-uploaded-screenshot"
+            />
+          </div>
+          
+          <p className="text-xs text-gray-500 text-center">
+            The AI will extract conversation text from this screenshot for analysis
           </p>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
     <div
-      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-        isDragging 
-          ? 'border-primary bg-primary/5' 
-          : 'border-gray-300 hover:border-gray-400'
-      }`}
+      onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      data-testid="area-image-upload"
+      className={`
+        border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+        ${isDragOver 
+          ? 'border-primary bg-blue-50' 
+          : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+        }
+      `}
+      onClick={handleButtonClick}
+      data-testid="dropzone-image-upload"
     >
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={handleFileInput}
+        onChange={handleFileInputChange}
         className="hidden"
         data-testid="input-file-upload"
       />
       
-      <div className="space-y-3">
-        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-          <Image className="w-6 h-6 text-gray-500" />
+      <div className="space-y-4">
+        <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+          <Upload className="w-6 h-6 text-gray-600" />
         </div>
         
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-1">Upload Screenshot</h3>
-          <p className="text-xs text-gray-500 mb-3">
-            Upload a screenshot of a conversation from any messaging app
+          <p className="text-lg font-medium text-gray-900">Upload a screenshot</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Drag and drop or click to select an image
           </p>
         </div>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          className="text-primary border-primary hover:bg-primary/5"
-          data-testid="button-select-image"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Select Image
-        </Button>
-        
-        <p className="text-xs text-gray-400">
-          Or drag and drop an image here
-        </p>
+        <div className="text-xs text-gray-500">
+          <p>Supports: WhatsApp, Discord, Slack, Teams, SMS, and other messaging apps</p>
+          <p className="mt-1">PNG, JPG, JPEG up to 10MB</p>
+        </div>
       </div>
     </div>
   );

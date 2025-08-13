@@ -36,7 +36,7 @@ function sanitizeContentForAnalysis(text: string): string {
 }
 
 function normalizespeakers(parseResult: any, isFromImage: boolean): { speakers: string[], messages: any[] } {
-  const speakers = parseResult.speakers || [];
+  const speakers: string[] = (parseResult.speakers || []).filter((s: any) => typeof s === 'string');
   const messages = parseResult.messages || [];
   
   // For image-based conversations, ensure proper speaker labeling
@@ -70,11 +70,14 @@ function normalizespeakers(parseResult: any, isFromImage: boolean): { speakers: 
       });
     }
     
-    // Normalize messages
-    const normalizedMessages = messages.map((msg: any) => ({
-      ...msg,
-      speaker: speakerMap.get(msg.speaker) || msg.speaker
-    }));
+    // Normalize messages and sort by line number to maintain order
+    const normalizedMessages = messages
+      .map((msg: any) => ({
+        ...msg,
+        speaker: speakerMap.get(msg.speaker) || msg.speaker,
+        lineNumber: msg.lineNumber || 0
+      }))
+      .sort((a: any, b: any) => (a.lineNumber || 0) - (b.lineNumber || 0));
     
     const normalizedSpeakers = Array.from(new Set(normalizedMessages.map((msg: any) => msg.speaker))).sort();
     
@@ -110,7 +113,7 @@ export async function analyzeConversation(
             content: [
               {
                 type: "text",
-                text: "Please extract all text from this messaging app conversation screenshot. Pay attention to:\n\n1. Message content and order\n2. Any visible sender names or contact names\n3. Message positioning (left-aligned usually means other person, right-aligned usually means screenshot owner)\n4. Timestamps if visible\n\nFormat the output as a clear conversation transcript, indicating which messages are from named senders vs unnamed (screenshot owner). For example:\n\nLayne Villanueva: [message]\n[Unnamed/You]: [message]\n\nThis is for communication analysis to help people understand conversations better."
+                text: "Extract all text from this messaging app conversation screenshot with PRECISE attention to chronological order and speaker identification.\n\nIMPORTANT GUIDELINES:\n1. Read messages from TOP TO BOTTOM in chronological order\n2. Identify speaker patterns:\n   - Messages with visible names/contacts = that person spoke\n   - Messages without sender names (often right-aligned) = screenshot owner spoke\n3. Preserve exact message order and content\n4. Include timestamps if visible for context\n\nFormat as a conversation transcript maintaining chronological flow:\n\n[Contact Name]: [first message]\n[You/Unnamed]: [response]\n[Contact Name]: [next message]\n[You/Unnamed]: [your response]\n\nBe extremely careful about WHO said WHAT and WHEN. This transcript will be used for communication analysis."
               },
               {
                 type: "image_url",
@@ -134,28 +137,40 @@ export async function analyzeConversation(
       messages: [
         {
           role: "system",
-          content: `You are a conversation parser that specializes in analyzing messaging app conversations. Parse the provided conversation text and identify speakers and their messages.
+          content: `You are a conversation parser that specializes in analyzing messaging app conversations. Your goal is to accurately identify speakers and preserve the chronological order of messages.
+
+          CRITICAL: Parse messages in the EXACT order they appear in the conversation, from top to bottom or earliest to latest.
 
           For conversations from screenshots:
-          - If you see a person's name (like "John Smith") appearing as a sender, that person is "Speaker-A" 
-          - Messages that don't show a sender name (usually on the right side of chat apps) are from the screenshot owner and should be labeled "Speaker-B" 
-          - If both speakers have names visible, use their actual names
-          - If no names are visible, use "Speaker-A" and "Speaker-B"
-          - Look for visual cues like message bubbles being left-aligned (other person) vs right-aligned (screenshot owner)
+          - Named senders (visible contact names) should be consistently labeled throughout
+          - Messages without sender names (usually from screenshot owner) should be labeled as "You" or "Unnamed"
+          - Pay attention to message threading and chronological flow
+          - Each message should have an accurate line number reflecting its position in the conversation
+
+          For speaker identification:
+          - If a contact name appears (e.g. "Layne Villanueva"), use that name consistently
+          - Messages that appear without a sender name are typically from the screenshot owner - label as "You"
+          - Maintain speaker consistency throughout the conversation
+          - Don't mix up which speaker said what
 
           Return JSON in this exact format:
           {
-            "speakers": ["Speaker-A", "Speaker-B"],
+            "speakers": ["Contact Name", "You"],
             "messages": [
               {
-                "speaker": "Speaker-A",
+                "speaker": "Contact Name",
                 "content": "message content",
                 "lineNumber": 1
+              },
+              {
+                "speaker": "You", 
+                "content": "response message",
+                "lineNumber": 2
               }
             ]
           }
           
-          Always assign each message to the correct speaker based on context clues.`
+          IMPORTANT: Maintain chronological order and accurate speaker attribution.`
         },
         {
           role: "user",

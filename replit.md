@@ -38,9 +38,12 @@ Preferred communication style: Simple, everyday language.
 ### Key Features
 - **Conversation Input**: Multi-format text input and screenshot upload with configurable analysis depth and language settings
 - **Screenshot Analysis**: AI-powered text extraction from conversation screenshots using GPT-4 vision capabilities
+- **Conversation Editor**: Comprehensive editing interface for correcting speaker attribution, message ordering, and content before final analysis
+- **Three-Phase Workflow**: Upload → AI extraction → Manual editing phase → Final analysis
 - **Real-time Analysis**: Asynchronous processing with loading states and progress indicators
 - **Issue Classification**: Categorized communication issues (assumption gaps, ambiguous language, tone mismatches, implicit meanings)
 - **Severity Scoring**: Three-tier issue classification (critical, moderate, minor) with visual indicators
+- **Reanalysis Functionality**: Ability to reprocess conversations with user-corrected data
 - **Export Functionality**: Analysis results available for download and sharing
 
 ### Development Architecture

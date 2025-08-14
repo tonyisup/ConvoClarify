@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquare, Settings, HelpCircle } from "lucide-react";
 import ConversationInput from "@/components/conversation-input.tsx";
 import AnalysisResults from "@/components/analysis-results.tsx";
 import LoadingModal from "@/components/loading-modal.tsx";
 import ConversationEditor from "@/components/conversation-editor.tsx";
 import { Button } from "@/components/ui/button";
+import { analytics } from "@/lib/posthog";
 
 export default function Home() {
   const [analysisData, setAnalysisData] = useState<any>(null);
@@ -16,6 +17,11 @@ export default function Home() {
     messages: any[];
     originalData: any;
   } | null>(null);
+
+  // Track page view on mount
+  useEffect(() => {
+    analytics.trackPageView('home');
+  }, []);
 
   const handleAnalysisComplete = (data: any) => {
     setIsAnalyzing(false);
@@ -42,6 +48,8 @@ export default function Home() {
     setIsEditing(false);
     setIsAnalyzing(true);
     
+    const startTime = Date.now();
+    
     try {
       // Re-run analysis with corrected data
       const response = await fetch(`/api/conversations/${editingData?.conversationId}/reanalyze`, {
@@ -51,9 +59,24 @@ export default function Home() {
       });
       
       const result = await response.json();
+      
+      // Track reanalysis completion
+      const processingTime = Date.now() - startTime;
+      analytics.trackReanalysisCompleted(
+        result.clarityScore || 0,
+        result.issues?.length || 0,
+        processingTime
+      );
+      
       setAnalysisData(result);
     } catch (error) {
       console.error('Reanalysis failed:', error);
+      
+      // Track reanalysis error
+      analytics.trackError("reanalysis_failed", {
+        error_details: error instanceof Error ? error.message : "Unknown error",
+      });
+      
       // Fallback to original data
       setAnalysisData(editingData?.originalData);
     }

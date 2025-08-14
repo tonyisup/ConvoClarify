@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Edit3, Trash2, Plus, ArrowRight } from "lucide-react";
 import { ConversationMessage } from "@shared/schema";
+import { analytics } from "@/lib/posthog";
 
 interface ConversationEditorProps {
   speakers: string[];
@@ -17,6 +18,14 @@ interface ConversationEditorProps {
 export default function ConversationEditor({ speakers, messages, onSave, onCancel }: ConversationEditorProps) {
   const [editedSpeakers, setEditedSpeakers] = useState<string[]>([...speakers]);
   const [editedMessages, setEditedMessages] = useState<ConversationMessage[]>([...messages]);
+  const [initialSpeakers] = useState<string[]>([...speakers]);
+  const [initialMessages] = useState<ConversationMessage[]>([...messages]);
+
+  // Track editor opening
+  useState(() => {
+    analytics.trackEditorOpened(speakers.length, messages.length);
+    return null;
+  });
 
   const addSpeaker = () => {
     const newSpeaker = `Speaker-${editedSpeakers.length + 1}`;
@@ -94,6 +103,17 @@ export default function ConversationEditor({ speakers, messages, onSave, onCance
   };
 
   const handleSave = () => {
+    // Track editor usage
+    const editedSpeakersFlag = JSON.stringify(initialSpeakers.sort()) !== JSON.stringify(editedSpeakers.sort());
+    const editedMessagesFlag = JSON.stringify(initialMessages) !== JSON.stringify(editedMessages);
+    
+    analytics.trackEditorSaved(
+      editedSpeakers.length,
+      editedMessages.length,
+      editedSpeakersFlag,
+      editedMessagesFlag
+    );
+    
     onSave(editedSpeakers.filter(s => s.trim()), editedMessages);
   };
 

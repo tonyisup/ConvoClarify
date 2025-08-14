@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import ImageUpload from "@/components/image-upload.tsx";
+import { analytics } from "@/lib/posthog";
 
 interface ConversationInputProps {
   onAnalysisStart: () => void;
@@ -48,8 +49,16 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
       return;
     }
 
+    const startTime = Date.now();
+
     try {
       onAnalysisStart();
+
+      // Track conversation upload
+      analytics.trackConversationUploaded(selectedImage ? 'image' : 'text');
+      
+      // Track analysis start
+      analytics.trackAnalysisStarted(analysisDepth, language, !!selectedImage);
 
       // Create conversation
       const conversation = await createConversationMutation.mutateAsync({
@@ -62,6 +71,16 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
       // Analyze conversation
       const analysis = await analyzeConversationMutation.mutateAsync(conversation.id);
       
+      // Track analysis completion
+      const processingTime = Date.now() - startTime;
+      analytics.trackAnalysisCompleted(
+        analysis.clarityScore || 0,
+        analysis.issues?.length || 0,
+        analysis.speakers?.length || 0,
+        analysis.messages?.length || 0,
+        processingTime
+      );
+      
       onAnalysisComplete(analysis);
       
       toast({
@@ -69,6 +88,16 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
         description: "Your conversation has been analyzed successfully.",
       });
     } catch (error) {
+      console.error("Analysis failed:", error);
+      
+      // Track error
+      analytics.trackError("analysis_failed", {
+        error_details: error instanceof Error ? error.message : "Unknown error",
+        has_image: !!selectedImage,
+        analysis_depth: analysisDepth,
+        language: language,
+      });
+      
       toast({
         title: "Analysis Failed",
         description: error instanceof Error ? error.message : "An error occurred during analysis.",

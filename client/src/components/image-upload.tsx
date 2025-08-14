@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { analytics } from "@/lib/posthog";
 
 interface ImageUploadProps {
   onImageSelect: (imageDataUrl: string) => void;
@@ -17,6 +18,12 @@ export default function ImageUpload({ onImageSelect, onImageRemove, selectedImag
     if (!file.type.startsWith('image/')) {
       return;
     }
+
+    // Track image upload
+    analytics.trackFeatureUsed('image_upload', {
+      file_type: file.type,
+      file_size: file.size,
+    });
 
     const reader = new FileReader();
     reader.onload = (e) => {

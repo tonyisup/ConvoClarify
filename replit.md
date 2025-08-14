@@ -81,5 +81,12 @@ Preferred communication style: Simple, everyday language.
 ### Additional Integrations
 - **Session Management**: PostgreSQL-based session storage with connect-pg-simple
 - **File Upload**: Support for conversation import from various text formats
+- **Analytics**: PostHog integration for comprehensive user behavior tracking and performance monitoring
 - **Responsive Design**: Mobile-first approach with responsive breakpoints
 - **Accessibility**: WCAG-compliant components with keyboard navigation support
+
+### Analytics Tracking
+- **User Journey**: Complete funnel tracking from conversation upload through analysis completion
+- **Feature Usage**: Detailed tracking of editor interactions, reanalysis events, and feature adoption
+- **Performance Monitoring**: Processing time measurement and error tracking for optimization insights
+- **Engagement Metrics**: Session recording and user interaction patterns for UX improvements

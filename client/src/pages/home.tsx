@@ -108,6 +108,9 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <a href="/subscription" className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
+                Upgrade Plan
+              </a>
               <ThemeToggle />
               <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <HelpCircle className="h-5 w-5" />

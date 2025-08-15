@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home.tsx";
 import Landing from "@/pages/landing";
+import Subscription from "@/pages/subscription";
 import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
+          <Route path="/subscription" component={Subscription} />
         </>
       )}
       <Route component={NotFound} />

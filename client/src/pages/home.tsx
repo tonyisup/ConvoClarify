@@ -147,7 +147,7 @@ export default function Home() {
             />
             
             {analysisData && (
-              <div className="mt-8">
+              <div className="mt-8 max-w-full overflow-hidden">
                 <AnalysisResults analysis={analysisData} />
               </div>
             )}

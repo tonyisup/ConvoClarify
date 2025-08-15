@@ -78,7 +78,7 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       {/* Results Header */}
       <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
         <CardContent className="p-6">

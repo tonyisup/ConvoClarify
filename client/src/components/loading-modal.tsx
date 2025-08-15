@@ -8,7 +8,7 @@ interface LoadingModalProps {
 export default function LoadingModal({ isOpen }: LoadingModalProps) {
   return (
     <Dialog open={isOpen}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogTitle className="sr-only">Analysis in Progress</DialogTitle>
         <div className="text-center py-6">
           <div className="w-16 h-16 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">

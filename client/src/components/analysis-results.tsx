@@ -118,8 +118,8 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
 
           {/* Issue Categories */}
           <div className="flex flex-wrap gap-2">
-            {analysis.summary?.mainCategories?.map((category: string) => (
-              <Badge key={category} variant="secondary" className="inline-flex items-center px-3 py-1">
+            {analysis.summary?.mainCategories?.map((category: string, index: number) => (
+              <Badge key={`${category}-${index}`} variant="secondary" className="inline-flex items-center px-3 py-1">
                 <span className="mr-1">{getCategoryIcon(category)}</span>
                 {getCategoryLabel(category)}
               </Badge>

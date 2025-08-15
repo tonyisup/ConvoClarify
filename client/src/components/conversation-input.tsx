@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Upload, Clipboard, Search, MessageSquare, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,26 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
   const [aiModel, setAiModel] = useState("gpt-4o-mini");
   const [reasoningLevel, setReasoningLevel] = useState("standard");
   const [dragOver, setDragOver] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Check localStorage for "don't show again" preference
+  useEffect(() => {
+    const hideHowItWorks = localStorage.getItem('hideHowItWorks');
+    if (hideHowItWorks === 'true') {
+      setShowHowItWorks(false);
+    }
+  }, []);
+
+  const handleDontShowAgain = () => {
+    localStorage.setItem('hideHowItWorks', 'true');
+    setShowHowItWorks(false);
+    toast({
+      title: "Preference saved",
+      description: "The How It Works panel will no longer be shown.",
+    });
+  };
 
   // Fetch user subscription status
   const { data: userData } = useQuery<{
@@ -380,10 +398,22 @@ John: What do you mean by reasonable? I thought you were on board.`}
       /> */}
 
       {/* Quick Tips Panel */}
-      <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">How It Works</h3>
-          <div className="space-y-4">
+      {showHowItWorks && (
+        <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">How It Works</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDontShowAgain}
+                className="text-xs text-gray-500 hover:text-gray-700"
+                data-testid="button-dont-show-again"
+              >
+                Don't show again
+              </Button>
+            </div>
+            <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <div className="w-8 h-8 bg-primary bg-opacity-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-primary text-sm font-semibold">1</span>
@@ -426,6 +456,7 @@ John: What do you mean by reasonable? I thought you were on board.`}
           </div> */}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

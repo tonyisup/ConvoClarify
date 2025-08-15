@@ -6,6 +6,30 @@ import { analyzeConversation, extractTextFromImage } from "./ai-service";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
 
+// Development authentication bypass
+const devAuthBypass = (req: any, res: any, next: any) => {
+  // Create a mock user for development
+  req.user = {
+    claims: {
+      sub: 'dev-user-123',
+      email: 'dev@example.com',
+      first_name: 'Dev',
+      last_name: 'User'
+    },
+    expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+  };
+  req.isAuthenticated = () => true;
+  next();
+};
+
+// Combined authentication middleware
+const authMiddleware = (req: any, res: any, next: any) => {
+  if (process.env.NODE_ENV === 'local') {
+    return devAuthBypass(req, res, next);
+  }
+  return isAuthenticated(req, res, next);
+};
+
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -15,11 +39,29 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication
-  await setupAuth(app);
+  // Setup authentication (skip in local development)
+  if (process.env.NODE_ENV !== 'local') {
+    await setupAuth(app);
+  } else {
+    // Create development user if it doesn't exist
+    try {
+      await storage.upsertUser({
+        id: 'dev-user-123',
+        email: 'dev@example.com',
+        firstName: 'Dev',
+        lastName: 'User',
+        subscriptionPlan: 'premium', // Give premium access for development
+        subscriptionStatus: 'active',
+        monthlyAnalysisCount: 0
+      });
+      console.log('Development user created/updated');
+    } catch (error) {
+      console.log('Development user setup error:', error);
+    }
+  }
 
   // Get authenticated user
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', authMiddleware, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -31,7 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User subscription endpoint
-  app.get('/api/user/subscription', isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/subscription', authMiddleware, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -53,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new conversation
-  app.post("/api/conversations", isAuthenticated, async (req: any, res) => {
+  app.post("/api/conversations", authMiddleware, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -262,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's subscription status and usage
-  app.get("/api/subscription/status", isAuthenticated, async (req: any, res) => {
+  app.get("/api/subscription/status", authMiddleware, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -294,7 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create subscription
-  app.post('/api/subscription/create', isAuthenticated, async (req: any, res) => {
+  app.post('/api/subscription/create', authMiddleware, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { planId } = req.body;
@@ -309,6 +351,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let customer;
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe not configured" });
+      }
       if (user.stripeCustomerId) {
         customer = await stripe.customers.retrieve(user.stripeCustomerId);
       } else {
@@ -329,6 +374,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Plan not found" });
       }
 
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe not configured" });
+      }
       const subscription = await stripe.subscriptions.create({
         customer: customer.id,
         items: [{
@@ -356,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cancel subscription
-  app.post('/api/subscription/cancel', isAuthenticated, async (req: any, res) => {
+  app.post('/api/subscription/cancel', authMiddleware, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -365,6 +413,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No active subscription found" });
       }
 
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe not configured" });
+      }
       await stripe.subscriptions.update(user.stripeSubscriptionId, {
         cancel_at_period_end: true,
       });
@@ -382,6 +433,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe webhook handler
   app.post('/api/webhooks/stripe', async (req, res) => {
+    if (!stripe) {
+      return res.status(500).json({ message: "Stripe not configured" });
+    }
     let event;
 
     try {
@@ -401,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'customer.subscription.created':
         case 'customer.subscription.updated': {
           const subscription = event.data.object as Stripe.Subscription;
-          const customer = await stripe.customers.retrieve(subscription.customer as string);
+          const customer = await stripe!.customers.retrieve(subscription.customer as string);
           
           if ('email' in customer && customer.email) {
             // Find user by email and update subscription

@@ -112,7 +112,7 @@ export default function ImageUpload({ onImageSelect, onImageRemove, selectedImag
         border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
         ${isDragOver 
           ? 'border-primary bg-blue-50' 
-          : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+          : 'border-gray-300 hover:border-primary'
         }
       `}
       onClick={handleButtonClick}
@@ -133,13 +133,13 @@ export default function ImageUpload({ onImageSelect, onImageRemove, selectedImag
         </div>
         
         <div>
-          <p className="text-lg font-medium text-gray-900">Upload a screenshot</p>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-lg font-medium text-gray-300 dark:text-gray-400">Upload a screenshot</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Drag and drop or click to select an image
           </p>
-        </div>
+        </div> 
         
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           <p>Supports: WhatsApp, Discord, Slack, Teams, SMS, and other messaging apps</p>
           <p className="mt-1">PNG, JPG, JPEG up to 10MB</p>
         </div>

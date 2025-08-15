@@ -48,27 +48,32 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      
       if (item.type.indexOf('image') !== -1) {
         e.preventDefault();
-        const file = item.getAsFile();
-        
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const base64String = event.target?.result as string;
-            setSelectedImage(base64String);
-            setInputMode("image");
-            
-            toast({
-              title: "Screenshot pasted successfully",
-              description: "Your screenshot has been added for analysis.",
-            });
-          };
-          reader.readAsDataURL(file);
+        const file = await item.getAsFile();
+        if (!file){
+          break;
         }
+        handleImagePaste(file);
         break;
       }
+    }
+  };
+
+  const handleImagePaste = async (file: File) => {          
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target?.result as string;
+        setSelectedImage(base64String);
+        setInputMode("image");
+        
+        toast({
+          title: "Screenshot pasted successfully",
+          description: "Your screenshot has been added for analysis.",
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -204,6 +209,29 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
       onAnalysisComplete(null);
     }
   };
+  const handleGlobalPaste = async () => {
+    if (inputMode === "text") {
+      handleTextPaste();
+    } else {
+      try {
+        const clipboardItems = await navigator.clipboard.read();
+        
+        const clipboardData = {
+          items: clipboardItems.map(item => ({
+            type: item.types[0],
+            getAsFile: () => item.getType(item.types[0]).then(blob => new File([blob], "clipboard-image", { type: blob.type })),
+          })),
+        };
+        handleImagePaste(await clipboardData.items[0].getAsFile());
+      } catch (error) {
+        toast({
+          title: "Failed to access clipboard",
+          description: "Could not read clipboard image.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const handleTextPaste = async () => {
     try {
@@ -225,14 +253,14 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Input Panel */}
-      <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <Card className="rounded-xl shadow-sm border border-gray-200">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Conversation Input</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Conversation Input</h2>
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={handleTextPaste}
+              onClick={handleGlobalPaste}
               className="text-sm text-gray-500 hover:text-gray-700"
               data-testid="button-paste-text"
             >
@@ -255,7 +283,7 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
 
             <TabsContent value="text" className="space-y-4 mt-4">
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Conversation Text</Label>
+                <Label className="block text-sm font-medium text-gray-600 dark:text-white mb-2">Conversation Text</Label>
                 <Textarea 
                   value={conversationText}
                   onChange={(e) => setConversationText(e.target.value)}
@@ -263,18 +291,13 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
                   className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-mono text-sm leading-relaxed"
                   placeholder={`Paste your conversation here...
 
-Example format:
 John: I think we should proceed with the original plan.
-Sarah: That sounds reasonable, but I have some concerns about timing.
-John: What do you mean by reasonable? I thought you were on board.
-Sarah: I am supportive, but reasonable doesn't mean without questions.
 
-💡 You can also paste screenshots directly here with Ctrl+V`}
+Sarah: That sounds reasonable, but I have some concerns about timing.
+
+John: What do you mean by reasonable? I thought you were on board.`}
                   data-testid="textarea-conversation-text"
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Tip: Use "Name:" format to separate speakers, or our AI will automatically detect conversation patterns
-                </p>
               </div>
             </TabsContent>
 
@@ -284,20 +307,17 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onPaste={handlePaste}
-                className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-                  dragOver ? 'border-primary bg-primary/5' : 'border-gray-300'
-                }`}
               >
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Upload Screenshot</Label>
+                <Label className="block text-sm font-medium text-gray-300 dark:text-white mb-2">Upload Screenshot</Label>
                 <ImageUpload
                   onImageSelect={setSelectedImage}
                   onImageRemove={() => setSelectedImage(null)}
                   selectedImage={selectedImage}
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                {/* <p className="text-xs text-gray-500 mt-2">
                   💡 Tip: Works with screenshots from WhatsApp, Discord, Slack, Teams, and other messaging apps<br/>
                   🖼️ Drag & drop images or paste screenshots with Ctrl+V
-                </p>
+                </p> */}
               </div>
             </TabsContent>
           </Tabs>
@@ -350,14 +370,14 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.
       </Card>
 
       {/* AI Model and Reasoning Level Selection - Premium Feature */}
-      <AIModelSelector
+      {/* <AIModelSelector
         selectedModel={aiModel}
         selectedReasoningLevel={reasoningLevel}
         onModelChange={setAiModel}
         onReasoningLevelChange={setReasoningLevel}
         userPlan={userData?.subscriptionPlan || "free"}
         disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending}
-      />
+      /> */}
 
       {/* Quick Tips Panel */}
       <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -395,7 +415,7 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.
             </div>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {/* <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-start space-x-2">
               <div className="text-blue-600 mt-0.5">💡</div>
               <div>
@@ -403,7 +423,7 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.
                 <p className="text-xs text-blue-700 mt-1">Upload screenshots from WhatsApp, Discord, Slack, Teams, or any messaging app for instant analysis</p>
               </div>
             </div>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

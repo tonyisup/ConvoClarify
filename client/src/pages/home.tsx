@@ -103,7 +103,7 @@ export default function Home() {
                 <MessageSquare className="text-white text-lg" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">ConversationClarify</h1>
+                <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Convo Clarify</h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Analyze conversations for potential miscommunications</p>
               </div>
             </div>

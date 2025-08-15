@@ -27,7 +27,8 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with connection pooling via Neon Database serverless driver
 - **ORM**: Drizzle ORM for type-safe database operations with automatic schema inference
 - **Schema Management**: Database migrations managed through Drizzle Kit with schema-first approach
-- **Storage Strategy**: Hybrid approach supporting both PostgreSQL (production) and in-memory storage (development)
+- **Storage Strategy**: PostgreSQL database with DatabaseStorage implementation for production data persistence
+- **Session Storage**: PostgreSQL-based session storage using connect-pg-simple for secure authentication sessions
 
 ### AI Integration
 - **AI Service**: OpenAI GPT-4o integration for conversation analysis and image text extraction
@@ -36,6 +37,8 @@ Preferred communication style: Simple, everyday language.
 - **Response Structure**: Structured analysis results including clarity scores, categorized issues, and detailed summaries
 
 ### Key Features
+- **User Authentication**: Secure login via Replit Auth with automatic account creation and session management
+- **Protected Access**: Landing page for logged-out users with secure authentication flow
 - **Conversation Input**: Multi-format text input and screenshot upload with configurable analysis depth and language settings
 - **Screenshot Analysis**: AI-powered text extraction from conversation screenshots using GPT-4 vision capabilities
 - **Conversation Editor**: Comprehensive editing interface for correcting speaker attribution, message ordering, and content before final analysis
@@ -57,6 +60,7 @@ Preferred communication style: Simple, everyday language.
 ### Core Backend Services
 - **OpenAI API**: GPT-4o model for conversation analysis and natural language processing
 - **Neon Database**: Serverless PostgreSQL database for production data persistence
+- **Replit Auth**: OpenID Connect authentication provider for secure user authentication
 - **Express.js**: Web server framework with middleware ecosystem
 
 ### Frontend Libraries

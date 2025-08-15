@@ -113,6 +113,14 @@ export default function Home() {
               <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
                 <Settings className="h-5 w-5" />
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/api/logout'}
+                data-testid="button-logout"
+              >
+                Logout
+              </Button>
             </div>
           </div>
         </div>

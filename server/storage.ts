@@ -1,10 +1,12 @@
-import { type Conversation, type InsertConversation, type Analysis, type InsertAnalysis } from "@shared/schema";
+import { type Conversation, type InsertConversation, type Analysis, type InsertAnalysis, type User, type UpsertUser } from "@shared/schema";
+import { db } from "./db";
+import { users, conversations, analyses } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
-  getUser(id: string): Promise<any | undefined>;
-  getUserByUsername(username: string): Promise<any | undefined>;
-  createUser(user: any): Promise<any>;
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   // Conversation methods
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -16,76 +18,56 @@ export interface IStorage {
   deleteAnalysis(id: string): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, any>;
-  private conversations: Map<string, Conversation>;
-  private analyses: Map<string, Analysis>;
-
-  constructor() {
-    this.users = new Map();
-    this.conversations = new Map();
-    this.analyses = new Map();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
-  async getUser(id: string): Promise<any | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<any | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: any): Promise<any> {
-    const id = randomUUID();
-    const user: any = { ...insertUser, id };
-    this.users.set(id, user);
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
     return user;
   }
 
   async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
-    const id = randomUUID();
-    const conversation: Conversation = {
-      id,
-      text: insertConversation.text,
-      imageUrl: insertConversation.imageUrl || null,
-      analysisDepth: insertConversation.analysisDepth || "standard",
-      language: insertConversation.language || "english",
-      createdAt: new Date(),
-    };
-    this.conversations.set(id, conversation);
+    const [conversation] = await db
+      .insert(conversations)
+      .values(insertConversation)
+      .returning();
     return conversation;
   }
 
   async getConversation(id: string): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
+    return conversation;
   }
 
   async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {
-    const id = randomUUID();
-    const analysis: Analysis = {
-      id,
-      conversationId: insertAnalysis.conversationId,
-      speakers: insertAnalysis.speakers as string[],
-      issues: insertAnalysis.issues as any[], // This will be properly typed from OpenAI response
-      summary: insertAnalysis.summary as any, // This will be properly typed from OpenAI response
-      clarityScore: insertAnalysis.clarityScore,
-      createdAt: new Date(),
-    };
-    this.analyses.set(id, analysis);
+    const [analysis] = await db
+      .insert(analyses)
+      .values(insertAnalysis)
+      .returning();
     return analysis;
   }
 
   async getAnalysisByConversationId(conversationId: string): Promise<Analysis | undefined> {
-    return Array.from(this.analyses.values()).find(
-      (analysis) => analysis.conversationId === conversationId,
-    );
+    const [analysis] = await db.select().from(analyses).where(eq(analyses.conversationId, conversationId));
+    return analysis;
   }
 
   async deleteAnalysis(id: string): Promise<void> {
-    this.analyses.delete(id);
+    await db.delete(analyses).where(eq(analyses.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

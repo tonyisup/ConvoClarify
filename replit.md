@@ -39,6 +39,7 @@ Preferred communication style: Simple, everyday language.
 ### Key Features
 - **User Authentication**: Secure login via Replit Auth with automatic account creation and session management
 - **Protected Access**: Landing page for logged-out users with secure authentication flow
+- **Dark Mode Support**: Full dark mode implementation with system preference detection and manual toggle
 - **Conversation Input**: Multi-format text input and screenshot upload with configurable analysis depth and language settings
 - **Screenshot Analysis**: AI-powered text extraction from conversation screenshots using GPT-4 vision capabilities
 - **Conversation Editor**: Comprehensive editing interface for correcting speaker attribution, message ordering, and content before final analysis
@@ -86,6 +87,7 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: PostgreSQL-based session storage with connect-pg-simple
 - **File Upload**: Support for conversation import from various text formats
 - **Analytics**: PostHog integration for comprehensive user behavior tracking and performance monitoring
+- **Theme System**: Complete dark/light mode support with system preference detection and persistent storage
 - **Responsive Design**: Mobile-first approach with responsive breakpoints
 - **Accessibility**: WCAG-compliant components with keyboard navigation support
 

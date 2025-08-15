@@ -5,6 +5,7 @@ import AnalysisResults from "@/components/analysis-results.tsx";
 import LoadingModal from "@/components/loading-modal.tsx";
 import ConversationEditor from "@/components/conversation-editor.tsx";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { analytics } from "@/lib/posthog";
 
 export default function Home() {
@@ -92,9 +93,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -102,15 +103,16 @@ export default function Home() {
                 <MessageSquare className="text-white text-lg" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900">ConversationClarify</h1>
-                <p className="text-sm text-gray-600">Analyze conversations for potential miscommunications</p>
+                <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">ConversationClarify</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Analyze conversations for potential miscommunications</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+              <ThemeToggle />
+              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <HelpCircle className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <Settings className="h-5 w-5" />
               </Button>
               <Button

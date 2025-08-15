@@ -205,7 +205,22 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
     }
   };
 
-
+  const handleTextPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setConversationText(text);
+      toast({
+        title: "Text pasted",
+        description: "Content pasted from clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to paste",
+        description: "Could not access clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

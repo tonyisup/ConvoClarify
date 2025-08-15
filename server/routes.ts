@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertConversationSchema, insertAnalysisSchema } from "@shared/schema";
-import { analyzeConversation } from "./ai-service";
+import { analyzeConversation, extractTextFromImage } from "./ai-service";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
 
@@ -80,8 +80,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      let conversationText = req.body.text;
+      
+      // If there's an image but no text, extract text from the image
+      if (req.body.imageUrl && (!conversationText || conversationText === "Text extracted from image")) {
+        try {
+          // Extract base64 data from data URL
+          const base64Data = req.body.imageUrl.split(',')[1];
+          const extractedText = await extractTextFromImage(base64Data);
+          conversationText = extractedText || "No text could be extracted from the image";
+        } catch (error) {
+          console.error("Failed to extract text from image:", error);
+          conversationText = "Error extracting text from image";
+        }
+      }
+
       const validatedData = insertConversationSchema.parse({
         ...req.body,
+        text: conversationText,
         userId
       });
       const conversation = await storage.createConversation(validatedData);

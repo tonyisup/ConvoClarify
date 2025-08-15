@@ -102,10 +102,7 @@ export class DatabaseStorage implements IStorage {
   async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {
     const [analysis] = await db
       .insert(analyses)
-      .values({
-        ...insertAnalysis,
-        id: randomUUID(),
-      })
+      .values(insertAnalysis)
       .returning();
     return analysis;
   }

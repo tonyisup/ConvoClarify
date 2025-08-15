@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Upload, Clipboard, Search, MessageSquare, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import ImageUpload from "@/components/image-upload.tsx";
+import AIModelSelector from "@/components/ai-model-selector.tsx";
 import { analytics } from "@/lib/posthog";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ConversationInputProps {
   onAnalysisStart: () => void;
@@ -23,10 +25,31 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
   const [inputMode, setInputMode] = useState<"text" | "image">("text");
   const [analysisDepth, setAnalysisDepth] = useState("standard");
   const [language, setLanguage] = useState("english");
+  const [aiModel, setAiModel] = useState("gpt-4o-mini");
+  const [reasoningLevel, setReasoningLevel] = useState("standard");
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Fetch user subscription status
+  const { data: userData } = useQuery<{
+    subscriptionPlan: string;
+    subscriptionStatus: string;
+    monthlyAnalysisCount: number;
+    subscriptionEndsAt?: string;
+  }>({
+    queryKey: ["/api/user/subscription"],
+    enabled: !!user,
+  });
 
   const createConversationMutation = useMutation({
-    mutationFn: async (data: { text: string; imageUrl?: string; analysisDepth: string; language: string }) => {
+    mutationFn: async (data: { 
+      text: string; 
+      imageUrl?: string; 
+      analysisDepth: string; 
+      language: string;
+      aiModel?: string;
+      reasoningLevel?: string;
+    }) => {
       const response = await apiRequest("POST", "/api/conversations", data);
       return response.json();
     },
@@ -66,6 +89,8 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
         imageUrl: selectedImage || undefined,
         analysisDepth,
         language,
+        aiModel,
+        reasoningLevel,
       });
 
       // Analyze conversation
@@ -234,6 +259,16 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.`}
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Model and Reasoning Level Selection - Premium Feature */}
+      <AIModelSelector
+        selectedModel={aiModel}
+        selectedReasoningLevel={reasoningLevel}
+        onModelChange={setAiModel}
+        onReasoningLevelChange={setReasoningLevel}
+        userPlan={userData?.subscriptionPlan || "free"}
+        disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending}
+      />
 
       {/* Quick Tips Panel */}
       <Card className="bg-white rounded-xl shadow-sm border border-gray-200">

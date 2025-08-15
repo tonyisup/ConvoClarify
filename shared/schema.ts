@@ -39,6 +39,8 @@ export const conversations = pgTable("conversations", {
   imageUrl: text("image_url"), // Optional screenshot URL
   analysisDepth: text("analysis_depth").notNull().default("standard"),
   language: text("language").notNull().default("english"),
+  aiModel: varchar("ai_model").default("gpt-4o-mini"), // gpt-4o-mini, gpt-4o, claude-3-5-sonnet
+  reasoningLevel: varchar("reasoning_level").default("standard"), // standard, detailed, comprehensive
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -58,8 +60,12 @@ export const insertConversationSchema = createInsertSchema(conversations).pick({
   imageUrl: true,
   analysisDepth: true,
   language: true,
+  aiModel: true,
+  reasoningLevel: true,
 }).extend({
   imageUrl: z.string().optional(),
+  aiModel: z.string().optional(),
+  reasoningLevel: z.string().optional(),
 });
 
 export const insertAnalysisSchema = createInsertSchema(analyses).pick({

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertConversationSchema, insertAnalysisSchema } from "@shared/schema";
-import { analyzeConversation } from "./openai";
+import { analyzeConversation } from "./ai-service";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
 
@@ -11,7 +11,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-07-30.basil",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -27,6 +27,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // User subscription endpoint
+  app.get('/api/user/subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionStatus: user.subscriptionStatus,
+        monthlyAnalysisCount: user.monthlyAnalysisCount,
+        subscriptionEndsAt: user.subscriptionEndsAt,
+      });
+    } catch (error) {
+      console.error("Error fetching user subscription:", error);
+      res.status(500).json({ message: "Failed to fetch subscription data" });
     }
   });
 
@@ -102,12 +124,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(existingAnalysis);
       }
 
-      // Perform analysis using OpenAI
+      // Perform analysis using the selected AI model
       const analysisResult = await analyzeConversation(
         conversation.text,
-        conversation.analysisDepth,
-        conversation.language,
-        conversation.imageUrl || undefined
+        {
+          model: conversation.aiModel || "gpt-4o-mini",
+          reasoningLevel: conversation.reasoningLevel || "standard",
+          language: conversation.language || "english",
+          analysisDepth: conversation.analysisDepth || "standard"
+        }
       );
 
       // Store the analysis
@@ -165,11 +190,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `${msg.speaker}: ${msg.content}`
       ).join('\n');
 
-      // Perform analysis using the corrected data
+      // Re-analyze with corrected data using original AI settings
       const analysisResult = await analyzeConversation(
         correctedText,
-        conversation.analysisDepth,
-        conversation.language
+        {
+          model: conversation.aiModel || "gpt-4o-mini",
+          reasoningLevel: conversation.reasoningLevel || "standard",
+          language: conversation.language || "english",
+          analysisDepth: conversation.analysisDepth || "standard"
+        }
       );
 
       // Delete existing analysis to create fresh one

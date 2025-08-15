@@ -31,7 +31,7 @@ const AI_MODELS = [
     speed: "Medium",
     accuracy: "Excellent",
     cost: "Medium",
-    planRequired: "free"
+    planRequired: "premium"
   },
   {
     id: "claude-3-5-sonnet",
@@ -58,7 +58,7 @@ const REASONING_LEVELS = [
     name: "Detailed",
     description: "In-depth analysis with context and recommendations",
     analysisDepth: "Detailed issue breakdown + actionable insights",
-    planRequired: "free"
+    planRequired: "pro"
   },
   {
     id: "comprehensive",

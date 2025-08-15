@@ -31,7 +31,9 @@ Preferred communication style: Simple, everyday language.
 - **Session Storage**: PostgreSQL-based session storage using connect-pg-simple for secure authentication sessions
 
 ### AI Integration
-- **AI Service**: OpenAI GPT-4o integration for conversation analysis and image text extraction
+- **Multi-Model Support**: OpenAI GPT-4o/GPT-4o-mini and Anthropic Claude 3.5 Sonnet integration
+- **Premium Model Access**: Advanced AI models (GPT-4o, Claude 3.5 Sonnet) exclusive to premium subscribers
+- **Configurable Reasoning**: Three analysis depth levels (standard, detailed, comprehensive) with subscription-based access
 - **Vision Capabilities**: GPT-4o vision model for extracting text from conversation screenshots
 - **Analysis Pipeline**: Multi-step process including image text extraction, conversation parsing, speaker identification, issue detection, and summary generation
 - **Response Structure**: Structured analysis results including clarity scores, categorized issues, and detailed summaries
@@ -49,6 +51,9 @@ Preferred communication style: Simple, everyday language.
 - **Severity Scoring**: Three-tier issue classification (critical, moderate, minor) with visual indicators
 - **Reanalysis Functionality**: Ability to reprocess conversations with user-corrected data
 - **Export Functionality**: Analysis results available for download and sharing
+- **Premium AI Models**: Multiple AI model selection for premium users (GPT-4o, Claude 3.5 Sonnet)
+- **Advanced Reasoning Levels**: Configurable analysis depth (standard, detailed, comprehensive) based on subscription tier
+- **Usage-Based Monetization**: Subscription tiers with monthly analysis limits and premium features
 
 ### Development Architecture
 - **TypeScript**: Full-stack type safety with shared schemas between client and server

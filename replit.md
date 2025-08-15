@@ -55,7 +55,7 @@ Preferred communication style: Simple, everyday language.
 - **Advanced Reasoning Levels**: Configurable analysis depth (standard, detailed, comprehensive) based on subscription tier
 - **Screenshot Paste Functionality**: Direct clipboard image pasting with Ctrl+V for quick conversation screenshot analysis
 - **Drag & Drop Interface**: Intuitive drag-and-drop image upload for conversation screenshots
-- **Usage-Based Monetization**: Subscription tiers with monthly analysis limits and premium features
+- **Usage-Based Monetization**: Generous free tier with 25 monthly analyses, pro and premium tiers with enhanced limits
 
 ### Development Architecture
 - **TypeScript**: Full-stack type safety with shared schemas between client and server

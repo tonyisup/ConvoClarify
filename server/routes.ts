@@ -67,9 +67,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const monthlyUsage = await storage.getUserMonthlyUsage(userId, currentMonth);
       const plan = user.subscriptionPlan || 'free';
       
-      let monthlyLimit = 5; // Free plan default
-      if (plan === 'pro') monthlyLimit = 50;
-      if (plan === 'premium') monthlyLimit = 200;
+      let monthlyLimit = 25; // Free plan now gets pro-level access
+      if (plan === 'pro') monthlyLimit = 100;
+      if (plan === 'premium') monthlyLimit = 300;
       
       if (monthlyUsage >= monthlyLimit && plan !== 'premium') {
         return res.status(403).json({ 

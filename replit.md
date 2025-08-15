@@ -42,7 +42,7 @@ Preferred communication style: Simple, everyday language.
 - **User Authentication**: Secure login via Replit Auth with automatic account creation and session management
 - **Protected Access**: Landing page for logged-out users with secure authentication flow
 - **Dark Mode Support**: Full dark mode implementation with system preference detection and manual toggle
-- **Conversation Input**: Multi-format text input and screenshot upload with configurable analysis depth and language settings
+- **Conversation Input**: Multi-format text input with screenshot paste/drag-drop functionality and configurable analysis depth and language settings
 - **Screenshot Analysis**: AI-powered text extraction from conversation screenshots using GPT-4 vision capabilities
 - **Conversation Editor**: Comprehensive editing interface for correcting speaker attribution, message ordering, and content before final analysis
 - **Three-Phase Workflow**: Upload → AI extraction → Manual editing phase → Final analysis
@@ -53,6 +53,8 @@ Preferred communication style: Simple, everyday language.
 - **Export Functionality**: Analysis results available for download and sharing
 - **Premium AI Models**: Multiple AI model selection for premium users (GPT-4o, Claude 3.5 Sonnet)
 - **Advanced Reasoning Levels**: Configurable analysis depth (standard, detailed, comprehensive) based on subscription tier
+- **Screenshot Paste Functionality**: Direct clipboard image pasting with Ctrl+V for quick conversation screenshot analysis
+- **Drag & Drop Interface**: Intuitive drag-and-drop image upload for conversation screenshots
 - **Usage-Based Monetization**: Subscription tiers with monthly analysis limits and premium features
 
 ### Development Architecture

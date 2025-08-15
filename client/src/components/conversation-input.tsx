@@ -27,6 +27,7 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
   const [language, setLanguage] = useState("english");
   const [aiModel, setAiModel] = useState("gpt-4o-mini");
   const [reasoningLevel, setReasoningLevel] = useState("standard");
+  const [dragOver, setDragOver] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -40,6 +41,78 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
     queryKey: ["/api/user/subscription"],
     enabled: !!user,
   });
+
+  // Handle paste events for screenshot pasting
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64String = event.target?.result as string;
+            setSelectedImage(base64String);
+            setInputMode("image");
+            
+            toast({
+              title: "Screenshot pasted successfully",
+              description: "Your screenshot has been added for analysis.",
+            });
+          };
+          reader.readAsDataURL(file);
+        }
+        break;
+      }
+    }
+  };
+
+  // Handle drag and drop for images
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64String = event.target?.result as string;
+          setSelectedImage(base64String);
+          setInputMode("image");
+          
+          toast({
+            title: "Screenshot uploaded successfully",
+            description: "Your screenshot has been added for analysis.",
+          });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload an image file.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { 
@@ -132,18 +205,7 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
     }
   };
 
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setConversationText(text);
-    } catch (error) {
-      toast({
-        title: "Paste Failed",
-        description: "Could not paste from clipboard. Please paste manually.",
-        variant: "destructive",
-      });
-    }
-  };
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -155,7 +217,7 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={handlePaste}
+              onClick={handleTextPaste}
               className="text-sm text-gray-500 hover:text-gray-700"
               data-testid="button-paste-text"
             >
@@ -182,6 +244,7 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
                 <Textarea 
                   value={conversationText}
                   onChange={(e) => setConversationText(e.target.value)}
+                  onPaste={handlePaste}
                   className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-mono text-sm leading-relaxed"
                   placeholder={`Paste your conversation here...
 
@@ -189,7 +252,9 @@ Example format:
 John: I think we should proceed with the original plan.
 Sarah: That sounds reasonable, but I have some concerns about timing.
 John: What do you mean by reasonable? I thought you were on board.
-Sarah: I am supportive, but reasonable doesn't mean without questions.`}
+Sarah: I am supportive, but reasonable doesn't mean without questions.
+
+💡 You can also paste screenshots directly here with Ctrl+V`}
                   data-testid="textarea-conversation-text"
                 />
                 <p className="text-xs text-gray-500 mt-2">
@@ -199,7 +264,15 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.`}
             </TabsContent>
 
             <TabsContent value="image" className="space-y-4 mt-4">
-              <div>
+              <div 
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onPaste={handlePaste}
+                className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+                  dragOver ? 'border-primary bg-primary/5' : 'border-gray-300'
+                }`}
+              >
                 <Label className="block text-sm font-medium text-gray-700 mb-2">Upload Screenshot</Label>
                 <ImageUpload
                   onImageSelect={setSelectedImage}
@@ -207,7 +280,8 @@ Sarah: I am supportive, but reasonable doesn't mean without questions.`}
                   selectedImage={selectedImage}
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  💡 Tip: Works with screenshots from WhatsApp, Discord, Slack, Teams, and other messaging apps
+                  💡 Tip: Works with screenshots from WhatsApp, Discord, Slack, Teams, and other messaging apps<br/>
+                  🖼️ Drag & drop images or paste screenshots with Ctrl+V
                 </p>
               </div>
             </TabsContent>

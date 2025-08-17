@@ -1,5 +1,6 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 import passport from "passport";
 import session from "express-session";
@@ -56,14 +57,28 @@ function updateUserSession(
 
 async function upsertUser(
   claims: any,
+  provider: "replit" | "google" = "replit"
 ) {
-  await storage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
+  if (provider === "replit") {
+    await storage.upsertUser({
+      id: claims["sub"],
+      email: claims["email"],
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      profileImageUrl: claims["profile_image_url"],
+      authProvider: "replit",
+    });
+  } else if (provider === "google") {
+    await storage.upsertUser({
+      id: claims.id,
+      email: claims.emails?.[0]?.value,
+      firstName: claims.name?.givenName,
+      lastName: claims.name?.familyName,
+      profileImageUrl: claims.photos?.[0]?.value,
+      authProvider: "google",
+      googleId: claims.id,
+    });
+  }
 }
 
 export async function setupAuth(app: Express) {
@@ -74,13 +89,14 @@ export async function setupAuth(app: Express) {
 
   const config = await getOidcConfig();
 
-  const verify: VerifyFunction = async (
+  // Replit Auth Strategy
+  const replitVerify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
     const user = {};
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
+    await upsertUser(tokens.claims(), "replit");
     verified(null, user);
   };
 
@@ -93,14 +109,43 @@ export async function setupAuth(app: Express) {
         scope: "openid email profile offline_access",
         callbackURL: `https://${domain}/api/callback`,
       },
-      verify,
+      replitVerify,
     );
     passport.use(strategy);
+  }
+
+  // Google OAuth Strategy
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/api/auth/google/callback"
+    }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        await upsertUser(profile, "google");
+        const user = {
+          claims: {
+            sub: profile.id,
+            email: profile.emails?.[0]?.value,
+            first_name: profile.name?.givenName,
+            last_name: profile.name?.familyName,
+            profile_image_url: profile.photos?.[0]?.value
+          },
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+        };
+        return done(null, user);
+      } catch (error) {
+        return done(error, undefined);
+      }
+    }));
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
+  // Replit Auth routes
   app.get("/api/login", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
@@ -114,6 +159,18 @@ export async function setupAuth(app: Express) {
       failureRedirect: "/api/login",
     })(req, res, next);
   });
+
+  // Google Auth routes
+  app.get("/api/auth/google",
+    passport.authenticate("google", { scope: ["profile", "email"] })
+  );
+
+  app.get("/api/auth/google/callback",
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    (req, res) => {
+      res.redirect("/");
+    }
+  );
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {

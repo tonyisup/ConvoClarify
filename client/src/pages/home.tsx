@@ -11,6 +11,7 @@ export default function Home() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState(0); // 0: idle, 1: parsing, 2: analyzing, 3: generating
   const [editingData, setEditingData] = useState<{
     conversationId: string;
     speakers: string[];
@@ -42,6 +43,7 @@ export default function Home() {
   const handleAnalysisStart = () => {
     setIsAnalyzing(true);
     setAnalysisData(null);
+    setAnalysisStep(0);
   };
 
   const handleEditingSave = async (speakers: string[], messages: any[]) => {
@@ -51,6 +53,8 @@ export default function Home() {
     const startTime = Date.now();
     
     try {
+      setAnalysisStep(2); // Step 2: Running semantic analysis
+      
       // Re-run analysis with corrected data
       const response = await fetch(`/api/conversations/${editingData?.conversationId}/reanalyze`, {
         method: 'POST',
@@ -60,6 +64,9 @@ export default function Home() {
       
       const result = await response.json();
       
+      setAnalysisStep(3); // Step 3: Identifying communication issues
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Track reanalysis completion
       const processingTime = Date.now() - startTime;
       analytics.trackReanalysisCompleted(
@@ -68,9 +75,11 @@ export default function Home() {
         processingTime
       );
       
+      setAnalysisStep(0); // Reset
       setAnalysisData(result);
     } catch (error) {
       console.error('Reanalysis failed:', error);
+      setAnalysisStep(0); // Reset on error
       
       // Track reanalysis error
       analytics.trackError("reanalysis_failed", {
@@ -139,6 +148,8 @@ export default function Home() {
           onEditingSave={handleEditingSave}
           onEditingCancel={handleEditingCancel}
           isAnalyzing={isAnalyzing}
+          analysisStep={analysisStep}
+          setAnalysisStep={setAnalysisStep}
         />
         
         {analysisData && !isAnalyzing && (

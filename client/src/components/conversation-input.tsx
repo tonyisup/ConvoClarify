@@ -28,6 +28,8 @@ interface ConversationInputProps {
   onEditingSave?: (speakers: string[], messages: any[]) => void;
   onEditingCancel?: () => void;
   isAnalyzing?: boolean;
+  analysisStep?: number;
+  setAnalysisStep?: (step: number) => void;
 }
 
 export default function ConversationInput({ 
@@ -37,7 +39,9 @@ export default function ConversationInput({
   editingData = null, 
   onEditingSave, 
   onEditingCancel,
-  isAnalyzing = false
+  isAnalyzing = false,
+  analysisStep: externalAnalysisStep = 0,
+  setAnalysisStep: externalSetAnalysisStep
 }: ConversationInputProps) {
   const [conversationText, setConversationText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -48,7 +52,11 @@ export default function ConversationInput({
   const [reasoningLevel, setReasoningLevel] = useState("deep");
   const [dragOver, setDragOver] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(true);
-  const [analysisStep, setAnalysisStep] = useState(0); // 0: idle, 1: parsing, 2: analyzing, 3: generating
+  const [localAnalysisStep, setLocalAnalysisStep] = useState(0); // 0: idle, 1: parsing, 2: analyzing, 3: generating
+  
+  // Use external step state if provided, otherwise use local state
+  const analysisStep = externalAnalysisStep;
+  const setAnalysisStep = externalSetAnalysisStep || setLocalAnalysisStep;
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -210,41 +218,14 @@ export default function ConversationInput({
         reasoningLevel,
       });
 
-      // Show step 1 complete briefly
+      // Show step 1 complete briefly, then reset to allow editing
       setAnalysisStep(1.5); // Show checkmark for step 1
       await new Promise(resolve => setTimeout(resolve, 300));
+      setAnalysisStep(0); // Reset - user can now edit
       
-      setAnalysisStep(2); // Step 2: Running semantic analysis
-
-      // Analyze conversation
-      const analysis = await analyzeConversationMutation.mutateAsync(conversation.id);
-      
-      // Show step 2 complete briefly
-      setAnalysisStep(2.5); // Show checkmark for step 2
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      setAnalysisStep(3); // Step 3: Identifying communication issues
-      
-      // Small delay to show final step
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Track analysis completion
-      const processingTime = Date.now() - startTime;
-      analytics.trackAnalysisCompleted(
-        analysis.clarityScore || 0,
-        analysis.issues?.length || 0,
-        analysis.speakers?.length || 0,
-        analysis.messages?.length || 0,
-        processingTime
-      );
-      
-      setAnalysisStep(0); // Reset
-      onAnalysisComplete(analysis);
-      
-      toast({
-        title: "Analysis Complete",
-        description: "Your conversation has been analyzed successfully.",
-      });
+      // Wait for user to complete editing before starting analysis
+      // This will be handled by the onAnalysisComplete callback which shows the editor
+      onAnalysisComplete(conversation);
     } catch (error) {
       console.error("Analysis failed:", error);
       

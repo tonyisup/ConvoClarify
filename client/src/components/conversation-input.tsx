@@ -210,10 +210,18 @@ export default function ConversationInput({
         reasoningLevel,
       });
 
+      // Show step 1 complete briefly
+      setAnalysisStep(1.5); // Show checkmark for step 1
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       setAnalysisStep(2); // Step 2: Running semantic analysis
 
       // Analyze conversation
       const analysis = await analyzeConversationMutation.mutateAsync(conversation.id);
+      
+      // Show step 2 complete briefly
+      setAnalysisStep(2.5); // Show checkmark for step 2
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       setAnalysisStep(3); // Step 3: Identifying communication issues
       
@@ -338,7 +346,7 @@ export default function ConversationInput({
                   </span>
                   {analysisStep === 1 ? (
                     <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                  ) : analysisStep > 1 ? (
+                  ) : analysisStep >= 1.5 ? (
                     <Check className="w-4 h-4 text-green-500" />
                   ) : (
                     <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
@@ -350,7 +358,7 @@ export default function ConversationInput({
                   </span>
                   {analysisStep === 2 ? (
                     <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  ) : analysisStep > 2 ? (
+                  ) : analysisStep >= 2.5 ? (
                     <Check className="w-4 h-4 text-green-500" />
                   ) : (
                     <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>

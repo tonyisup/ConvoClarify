@@ -27,6 +27,7 @@ interface ConversationInputProps {
   } | null;
   onEditingSave?: (speakers: string[], messages: any[]) => void;
   onEditingCancel?: () => void;
+  isAnalyzing?: boolean;
 }
 
 export default function ConversationInput({ 
@@ -35,7 +36,8 @@ export default function ConversationInput({
   isEditing = false, 
   editingData = null, 
   onEditingSave, 
-  onEditingCancel 
+  onEditingCancel,
+  isAnalyzing = false
 }: ConversationInputProps) {
   const [conversationText, setConversationText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -301,6 +303,41 @@ export default function ConversationInput({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Inline Loading State */}
+      {isAnalyzing && (
+        <div className="lg:col-span-2 mb-8">
+          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-primary bg-opacity-20 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Analyzing Conversation</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Our AI is examining your conversation for potential miscommunications...
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Parsing speakers & messages</span>
+                  <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Running semantic analysis</span>
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Identifying communication issues</span>
+                  <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       {/* Input Panel */}
       <Card className="rounded-xl shadow-sm border border-gray-200">
         <CardContent className="p-6">
@@ -404,14 +441,23 @@ John: What do you mean by reasonable? I thought you were on board.`}
 
             <Button 
               onClick={handleAnalyze}
-              disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending}
-              className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+              disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending || isAnalyzing}
+              className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="button-analyze-conversation"
             >
-              <Search className="w-4 h-4" />
-              <span>
-                {selectedImage ? "Analyze Screenshot" : "Analyze Conversation"}
-              </span>
+              {isAnalyzing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Analyzing...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  <span>
+                    {selectedImage ? "Analyze Screenshot" : "Analyze Conversation"}
+                  </span>
+                </>
+              )}
             </Button>
           </div>
         </CardContent>

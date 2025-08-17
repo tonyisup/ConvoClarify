@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { MessageSquare, Settings, HelpCircle, LogOut } from "lucide-react";
 import ConversationInput from "@/components/conversation-input.tsx";
 import AnalysisResults from "@/components/analysis-results.tsx";
-import LoadingModal from "@/components/loading-modal.tsx";
 import ConversationEditor from "@/components/conversation-editor.tsx";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -139,16 +138,15 @@ export default function Home() {
           editingData={editingData}
           onEditingSave={handleEditingSave}
           onEditingCancel={handleEditingCancel}
+          isAnalyzing={isAnalyzing}
         />
         
-        {analysisData && (
+        {analysisData && !isAnalyzing && (
           <div className="mt-8 max-w-full overflow-hidden">
             <AnalysisResults analysis={analysisData} />
           </div>
         )}
       </main>
-
-      <LoadingModal isOpen={isAnalyzing} />
     </div>
   );
 }

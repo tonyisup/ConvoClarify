@@ -11,15 +11,32 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import ImageUpload from "@/components/image-upload.tsx";
 import AIModelSelector from "@/components/ai-model-selector.tsx";
+import ConversationEditor from "@/components/conversation-editor.tsx";
 import { analytics } from "@/lib/posthog";
 import { useAuth } from "@/hooks/useAuth";
 
 interface ConversationInputProps {
   onAnalysisStart: () => void;
   onAnalysisComplete: (data: any) => void;
+  isEditing?: boolean;
+  editingData?: {
+    conversationId: string;
+    speakers: string[];
+    messages: any[];
+    originalData: any;
+  } | null;
+  onEditingSave?: (speakers: string[], messages: any[]) => void;
+  onEditingCancel?: () => void;
 }
 
-export default function ConversationInput({ onAnalysisStart, onAnalysisComplete }: ConversationInputProps) {
+export default function ConversationInput({ 
+  onAnalysisStart, 
+  onAnalysisComplete, 
+  isEditing = false, 
+  editingData = null, 
+  onEditingSave, 
+  onEditingCancel 
+}: ConversationInputProps) {
   const [conversationText, setConversationText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<"text" | "image">("text");
@@ -410,17 +427,26 @@ John: What do you mean by reasonable? I thought you were on board.`}
         disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending}
       /> */}
 
-      {/* Quick Tips Panel */}
-      {showHowItWorks && (
-        <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+      {/* Inline Conversation Editor or How It Works Panel */}
+      {isEditing && editingData ? (
+        <div className="w-full">
+          <ConversationEditor 
+            speakers={editingData.speakers}
+            messages={editingData.messages}
+            onSave={onEditingSave!}
+            onCancel={onEditingCancel!}
+          />
+        </div>
+      ) : showHowItWorks && (
+        <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">How It Works</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">How It Works</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleDontShowAgain}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 data-testid="button-dont-show-again"
               >
                 Don't show again
@@ -432,8 +458,8 @@ John: What do you mean by reasonable? I thought you were on board.`}
                 <span className="text-primary text-sm font-semibold">1</span>
               </div>
               <div>
-                <h4 className="font-medium text-gray-900">Extract & Parse</h4>
-                <p className="text-sm text-gray-600">Extract text from screenshots or parse typed conversations to identify speakers</p>
+                <h4 className="font-medium text-gray-900 dark:text-white">Extract & Parse</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Extract text from screenshots or parse typed conversations to identify speakers</p>
               </div>
             </div>
             
@@ -442,8 +468,8 @@ John: What do you mean by reasonable? I thought you were on board.`}
                 <span className="text-primary text-sm font-semibold">2</span>
               </div>
               <div>
-                <h4 className="font-medium text-gray-900">Semantic Analysis</h4>
-                <p className="text-sm text-gray-600">Analyze word choices, connotations, and implicit meanings</p>
+                <h4 className="font-medium text-gray-900 dark:text-white">Semantic Analysis</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Analyze word choices, connotations, and implicit meanings</p>
               </div>
             </div>
             
@@ -452,21 +478,11 @@ John: What do you mean by reasonable? I thought you were on board.`}
                 <span className="text-primary text-sm font-semibold">3</span>
               </div>
               <div>
-                <h4 className="font-medium text-gray-900">Identify Issues</h4>
-                <p className="text-sm text-gray-600">Highlight potential miscommunications with detailed explanations</p>
+                <h4 className="font-medium text-gray-900 dark:text-white">Identify Issues</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Highlight potential miscommunications with detailed explanations</p>
               </div>
             </div>
           </div>
-
-          {/* <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-start space-x-2">
-              <div className="text-blue-600 mt-0.5">💡</div>
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">Screenshot Support</h4>
-                <p className="text-xs text-blue-700 mt-1">Upload screenshots from WhatsApp, Discord, Slack, Teams, or any messaging app for instant analysis</p>
-              </div>
-            </div>
-          </div> */}
         </CardContent>
       </Card>
       )}

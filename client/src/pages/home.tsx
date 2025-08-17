@@ -132,26 +132,19 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {isEditing ? (
-          <ConversationEditor 
-            speakers={editingData?.speakers || []}
-            messages={editingData?.messages || []}
-            onSave={handleEditingSave}
-            onCancel={handleEditingCancel}
-          />
-        ) : (
-          <>
-            <ConversationInput 
-              onAnalysisStart={handleAnalysisStart}
-              onAnalysisComplete={handleAnalysisComplete}
-            />
-            
-            {analysisData && (
-              <div className="mt-8 max-w-full overflow-hidden">
-                <AnalysisResults analysis={analysisData} />
-              </div>
-            )}
-          </>
+        <ConversationInput 
+          onAnalysisStart={handleAnalysisStart}
+          onAnalysisComplete={handleAnalysisComplete}
+          isEditing={isEditing}
+          editingData={editingData}
+          onEditingSave={handleEditingSave}
+          onEditingCancel={handleEditingCancel}
+        />
+        
+        {analysisData && (
+          <div className="mt-8 max-w-full overflow-hidden">
+            <AnalysisResults analysis={analysisData} />
+          </div>
         )}
       </main>
 

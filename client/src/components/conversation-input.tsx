@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Upload, Clipboard, Search, MessageSquare, Camera, Check } from "lucide-react";
+import { Upload, Clipboard, Search, MessageSquare, Camera, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,7 @@ export default function ConversationInput({
   const [reasoningLevel, setReasoningLevel] = useState("deep");
   const [dragOver, setDragOver] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(true);
+  const [isInputCollapsed, setIsInputCollapsed] = useState(false);
   const [localAnalysisStep, setLocalAnalysisStep] = useState(0); // 0: idle, 1: parsing, 2: analyzing, 3: generating
   
   // Use external step state if provided, otherwise use local state
@@ -67,6 +68,13 @@ export default function ConversationInput({
       setShowHowItWorks(false);
     }
   }, []);
+
+  // Auto-collapse input card when analysis starts
+  useEffect(() => {
+    if (isAnalyzing || isEditing) {
+      setIsInputCollapsed(true);
+    }
+  }, [isAnalyzing, isEditing]);
 
   const handleDontShowAgain = () => {
     localStorage.setItem('hideHowItWorks', 'true');
@@ -367,19 +375,44 @@ export default function ConversationInput({
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Conversation Input</h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleGlobalPaste}
-              className="text-sm text-gray-500 hover:text-gray-700"
-              data-testid="button-paste-auto"
-            >
-              <Clipboard className="w-4 h-4 mr-1" />
-              Smart Paste
-            </Button>
+            <div className="flex items-center space-x-2">
+              {(isAnalyzing || isEditing) && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsInputCollapsed(!isInputCollapsed)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                  data-testid="button-toggle-input"
+                >
+                  {isInputCollapsed ? (
+                    <>
+                      <ChevronDown className="w-4 h-4 mr-1" />
+                      Show Input
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="w-4 h-4 mr-1" />
+                      Hide Input
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleGlobalPaste}
+                className="text-sm text-gray-500 hover:text-gray-700"
+                data-testid="button-paste-auto"
+              >
+                <Clipboard className="w-4 h-4 mr-1" />
+                Smart Paste
+              </Button>
+            </div>
           </div>
 
-          <Tabs value={inputMode} onValueChange={(value) => setInputMode(value as "text" | "image")} className="w-full">
+          {!isInputCollapsed && (
+            <>
+            <Tabs value={inputMode} onValueChange={(value) => setInputMode(value as "text" | "image")} className="w-full">
             <TabsList className="grid w-full grid-cols-2" data-testid="tabs-input-mode">
               <TabsTrigger value="text" className="flex items-center space-x-2" data-testid="tab-text-input">
                 <MessageSquare className="w-4 h-4" />
@@ -486,6 +519,36 @@ John: What do you mean by reasonable? I thought you were on board.`}
               </Button>
             )}
           </div>
+          </>
+          )}
+
+          {/* Collapsed state - show just the input source */}
+          {isInputCollapsed && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 dark:text-gray-300 font-medium">
+                  {selectedImage ? "📷 Screenshot uploaded" : "💬 Text conversation"}
+                </span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs">
+                  {analysisDepth === "deep" ? "Deep Analysis" : "Context-Aware Analysis"}
+                </span>
+              </div>
+              {selectedImage && (
+                <div className="mt-2">
+                  <img 
+                    src={selectedImage} 
+                    alt="Uploaded screenshot"
+                    className="max-w-full h-20 object-cover rounded border"
+                  />
+                </div>
+              )}
+              {conversationText && !selectedImage && (
+                <div className="mt-2 text-gray-600 dark:text-gray-400 text-xs truncate">
+                  {conversationText.substring(0, 100)}...
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

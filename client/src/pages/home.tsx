@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, Settings, HelpCircle } from "lucide-react";
+import { MessageSquare, Settings, HelpCircle, LogOut } from "lucide-react";
 import ConversationInput from "@/components/conversation-input.tsx";
 import AnalysisResults from "@/components/analysis-results.tsx";
 import LoadingModal from "@/components/loading-modal.tsx";
@@ -104,27 +104,27 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Convo Clarify</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Analyze conversations for potential miscommunications</p>
+                {/* <p className="text-sm text-gray-600 dark:text-gray-400">Analyze conversations for potential miscommunications</p> */}
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <a href="/subscription" className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
+              {/* <a href="/subscription" className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
                 Upgrade Plan
-              </a>
+              </a> */}
               <ThemeToggle />
-              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              {/* <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <HelpCircle className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              </Button> */}
+              {/* <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <Settings className="h-5 w-5" />
-              </Button>
+              </Button> */}
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => window.location.href = '/api/logout'}
                 data-testid="button-logout"
               >
-                Logout
+                <LogOut className="h-5 w-5" />
               </Button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Upload, Clipboard, Search, MessageSquare, Camera } from "lucide-react";
+import { Upload, Clipboard, Search, MessageSquare, Camera, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,7 @@ export default function ConversationInput({
   const [reasoningLevel, setReasoningLevel] = useState("deep");
   const [dragOver, setDragOver] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(true);
+  const [analysisStep, setAnalysisStep] = useState(0); // 0: idle, 1: parsing, 2: analyzing, 3: generating
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -191,6 +192,7 @@ export default function ConversationInput({
 
     try {
       onAnalysisStart();
+      setAnalysisStep(1); // Step 1: Parsing speakers & messages
 
       // Track conversation upload
       analytics.trackConversationUploaded(selectedImage ? 'image' : 'text');
@@ -208,8 +210,15 @@ export default function ConversationInput({
         reasoningLevel,
       });
 
+      setAnalysisStep(2); // Step 2: Running semantic analysis
+
       // Analyze conversation
       const analysis = await analyzeConversationMutation.mutateAsync(conversation.id);
+      
+      setAnalysisStep(3); // Step 3: Identifying communication issues
+      
+      // Small delay to show final step
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Track analysis completion
       const processingTime = Date.now() - startTime;
@@ -221,6 +230,7 @@ export default function ConversationInput({
         processingTime
       );
       
+      setAnalysisStep(0); // Reset
       onAnalysisComplete(analysis);
       
       toast({
@@ -243,6 +253,7 @@ export default function ConversationInput({
         description: error instanceof Error ? error.message : "An error occurred during analysis.",
         variant: "destructive",
       });
+      setAnalysisStep(0); // Reset on error
       onAnalysisComplete(null);
     }
   };
@@ -322,16 +333,40 @@ export default function ConversationInput({
               
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Parsing speakers & messages</span>
-                  <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className={`${analysisStep >= 1 ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                    Parsing speakers & messages
+                  </span>
+                  {analysisStep === 1 ? (
+                    <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  ) : analysisStep > 1 ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Running semantic analysis</span>
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span className={`${analysisStep >= 2 ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                    Running semantic analysis
+                  </span>
+                  {analysisStep === 2 ? (
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  ) : analysisStep > 2 ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Identifying communication issues</span>
-                  <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className={`${analysisStep >= 3 ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                    Identifying communication issues
+                  </span>
+                  {analysisStep === 3 ? (
+                    <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                  ) : analysisStep > 3 ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                  )}
                 </div>
               </div>
             </CardContent>

@@ -4,6 +4,19 @@
 
 ConversationClarify is a full-stack web application that analyzes conversations to identify potential miscommunications, ambiguous language, and communication issues. The application uses OpenAI's GPT-4o model to parse conversations, identify speakers, and provide detailed insights about communication clarity with scored analysis and actionable recommendations.
 
+## Recent Changes (January 17, 2025)
+
+- **Analysis Display Fixed**: Resolved critical bug where only clarity score was displayed instead of complete analysis results
+- **Advanced Analysis Only**: Removed standard analysis option, now exclusively offers "Deep Semantic Analysis" and "Context-Aware Analysis" 
+- **Smart Paste Enhancement**: Auto-detects clipboard content type and switches between text/image input tabs
+- **How It Works Panel**: Added persistent "don't show again" option with localStorage
+- **Complete Analysis Results**: Now displays full AI analysis including:
+  - Issue breakdown by severity (critical, moderate, minor)
+  - Detailed expandable issue cards with descriptions and suggestions
+  - AI-generated insights and recommendations
+  - Complete conversation parsing with speaker identification
+  - Overall assessment and communication patterns
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

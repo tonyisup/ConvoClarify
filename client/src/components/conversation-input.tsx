@@ -439,26 +439,28 @@ John: What do you mean by reasonable? I thought you were on board.`}
               </div>
             </div>
 
-            <Button 
-              onClick={handleAnalyze}
-              disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending || isAnalyzing}
-              className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              data-testid="button-analyze-conversation"
-            >
-              {isAnalyzing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Analyzing...</span>
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4" />
-                  <span>
-                    {selectedImage ? "Analyze Screenshot" : "Analyze Conversation"}
-                  </span>
-                </>
-              )}
-            </Button>
+            {!isEditing && (
+              <Button 
+                onClick={handleAnalyze}
+                disabled={createConversationMutation.isPending || analyzeConversationMutation.isPending || isAnalyzing}
+                className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="button-analyze-conversation"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    <span>
+                      {selectedImage ? "Analyze Screenshot" : "Analyze Conversation"}
+                    </span>
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

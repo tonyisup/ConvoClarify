@@ -11,6 +11,9 @@ interface AnalysisResultsProps {
 
 export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
   const [expandedIssues, setExpandedIssues] = useState<string[]>([]);
+  
+  // Debug: Log the analysis data to see what we're receiving
+  console.log("Analysis data received:", analysis);
 
   const toggleIssue = (issueId: string) => {
     setExpandedIssues(prev => 

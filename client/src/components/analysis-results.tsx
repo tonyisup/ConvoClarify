@@ -12,6 +12,9 @@ interface AnalysisResultsProps {
 export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
   const [expandedIssues, setExpandedIssues] = useState<string[]>([]);
 
+  // Get unique speakers to maintain consistent colors
+  const uniqueSpeakers = Array.from(new Set(analysis.messages?.map((message: any) => message.speaker) || []));
+
   const toggleIssue = (issueId: string) => {
     setExpandedIssues(prev => 
       prev.includes(issueId) 
@@ -58,14 +61,18 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
     }
   };
 
-  const getSpeakerColor = (speaker: string, index: number) => {
+  const getSpeakerColor = (speaker: string, speakers: string[]) => {
     const colors = [
       "text-primary dark:text-primary", 
       "text-green-600 dark:text-green-400", 
       "text-purple-600 dark:text-purple-400", 
       "text-orange-600 dark:text-orange-400"
     ];
-    return colors[index % colors.length];
+    if (!speakers || !Array.isArray(speakers)) {
+      return colors[0];
+    }
+    const speakerIndex = speakers.indexOf(speaker);
+    return colors[speakerIndex >= 0 ? speakerIndex % colors.length : 0];
   };
 
   return (
@@ -134,7 +141,7 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
             {analysis.messages?.map((message: any, index: number) => (
               <div key={index} className="border-l-4 border-gray-200 dark:border-gray-600 pl-4 py-2">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className={`font-semibold ${getSpeakerColor(message.speaker, index)}`}>
+                  <span className={`font-semibold ${getSpeakerColor(message.speaker, uniqueSpeakers)}`}>
                     {message.speaker}
                   </span>
                   {message.timestamp && (

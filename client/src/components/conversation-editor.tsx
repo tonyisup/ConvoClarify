@@ -124,7 +124,7 @@ export default function ConversationEditor({ speakers, messages, onSave, onCance
           <Edit3 className="w-5 h-5" />
           <span>Edit Conversation</span>
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           Review and correct the extracted conversation before analysis. Fix any speaker misattributions or message ordering issues.
         </p>
       </CardHeader>
@@ -190,21 +190,21 @@ export default function ConversationEditor({ speakers, messages, onSave, onCance
               <Card key={index} className="p-3">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
                   <div>
-                    <Label className="text-xs text-gray-500">Speaker</Label>
+                    <Label className="text-xs text-gray-500 dark:text-gray-400">Speaker</Label>
                     <select
                       value={message.speaker}
                       onChange={(e) => updateMessage(index, 'speaker', e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded text-sm"
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       data-testid={`select-message-speaker-${index}`}
                     >
                       {editedSpeakers.map(speaker => (
-                        <option key={speaker} value={speaker}>{speaker}</option>
+                        <option key={speaker} value={speaker} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{speaker}</option>
                       ))}
                     </select>
                   </div>
                   
                   <div className="md:col-span-2">
-                    <Label className="text-xs text-gray-500">Message Content</Label>
+                    <Label className="text-xs text-gray-500 dark:text-gray-400">Message Content</Label>
                     <Textarea
                       value={message.content}
                       onChange={(e) => updateMessage(index, 'content', e.target.value)}
@@ -215,7 +215,7 @@ export default function ConversationEditor({ speakers, messages, onSave, onCance
                   </div>
                   
                   <div className="flex flex-col space-y-1">
-                    <Label className="text-xs text-gray-500">Order #{message.lineNumber}</Label>
+                    <Label className="text-xs text-gray-500 dark:text-gray-400">Order #{message.lineNumber}</Label>
                     <div className="flex space-x-1">
                       <Button
                         onClick={() => moveMessage(index, 'up')}

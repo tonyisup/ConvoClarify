@@ -187,9 +187,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conversation.text,
         {
           model: conversation.aiModel || "gpt-4o-mini",
-          reasoningLevel: conversation.reasoningLevel || "standard",
+          reasoningLevel: conversation.reasoningLevel || "deep",
           language: conversation.language || "english",
-          analysisDepth: conversation.analysisDepth || "standard"
+          analysisDepth: conversation.analysisDepth || "deep"
         }
       );
 
@@ -253,9 +253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         correctedText,
         {
           model: conversation.aiModel || "gpt-4o-mini",
-          reasoningLevel: conversation.reasoningLevel || "standard",
+          reasoningLevel: conversation.reasoningLevel || "deep",
           language: conversation.language || "english",
-          analysisDepth: conversation.analysisDepth || "standard"
+          analysisDepth: conversation.analysisDepth || "deep"
         }
       );
 

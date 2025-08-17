@@ -23,10 +23,10 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
   const [conversationText, setConversationText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<"text" | "image">("text");
-  const [analysisDepth, setAnalysisDepth] = useState("standard");
+  const [analysisDepth, setAnalysisDepth] = useState("deep");
   const [language, setLanguage] = useState("english");
   const [aiModel, setAiModel] = useState("gpt-4o-mini");
-  const [reasoningLevel, setReasoningLevel] = useState("standard");
+  const [reasoningLevel, setReasoningLevel] = useState("deep");
   const [dragOver, setDragOver] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(true);
   const { toast } = useToast();
@@ -364,7 +364,6 @@ John: What do you mean by reasonable? I thought you were on board.`}
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="standard">Standard Analysis</SelectItem>
                     <SelectItem value="deep">Deep Semantic Analysis</SelectItem>
                     <SelectItem value="context">Context-Aware Analysis</SelectItem>
                   </SelectContent>

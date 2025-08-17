@@ -47,22 +47,15 @@ const AI_MODELS = [
 
 const REASONING_LEVELS = [
   {
-    id: "standard",
-    name: "Standard",
-    description: "Basic issue identification and clarity scoring",
-    analysisDepth: "Core communication issues",
-    planRequired: "free"
-  },
-  {
-    id: "detailed",
-    name: "Detailed",
+    id: "deep",
+    name: "Deep Semantic",
     description: "In-depth analysis with context and recommendations",
     analysisDepth: "Detailed issue breakdown + actionable insights",
     planRequired: "pro"
   },
   {
-    id: "comprehensive",
-    name: "Comprehensive",
+    id: "context",
+    name: "Context Aware",
     description: "Deep semantic analysis with psychological insights",
     analysisDepth: "Full linguistic analysis + interpersonal dynamics",
     planRequired: "premium"

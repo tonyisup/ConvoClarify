@@ -48,21 +48,19 @@ function buildPrompt(conversationText: string, options: AnalysisOptions): string
   const basePrompt = `Analyze the following conversation to identify potential miscommunications, ambiguous language, and communication issues.`;
   
   const reasoningLevelInstructions: Record<string, string> = {
-    standard: `Provide basic issue identification and clarity scoring.`,
-    detailed: `Provide in-depth analysis with context and actionable recommendations. Include detailed explanations for each issue and specific suggestions for improvement.`,
-    comprehensive: `Provide deep semantic analysis with psychological insights. Analyze linguistic patterns, interpersonal dynamics, cultural context, implicit meanings, and provide comprehensive recommendations for improving communication effectiveness.`
+    deep: `Provide in-depth analysis with context and actionable recommendations. Include detailed explanations for each issue and specific suggestions for improvement.`,
+    context: `Provide deep semantic analysis with psychological insights. Analyze linguistic patterns, interpersonal dynamics, cultural context, implicit meanings, and provide comprehensive recommendations for improving communication effectiveness.`
   };
 
   const analysisDepthInstructions: Record<string, string> = {
-    standard: `Focus on obvious communication issues and basic clarity problems.`,
     deep: `Perform semantic analysis of word choices, connotations, and implied meanings.`,
     context: `Include contextual analysis, cultural considerations, and relationship dynamics.`
   };
 
   return `${basePrompt}
 
-${reasoningLevelInstructions[reasoningLevel] || reasoningLevelInstructions.standard}
-${analysisDepthInstructions[analysisDepth] || analysisDepthInstructions.standard}
+${reasoningLevelInstructions[reasoningLevel] || reasoningLevelInstructions.deep}
+${analysisDepthInstructions[analysisDepth] || analysisDepthInstructions.deep}
 
 Language: ${language}
 

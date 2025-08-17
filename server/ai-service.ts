@@ -143,9 +143,7 @@ async function analyzeWithGPT4oMini(prompt: string): Promise<AnalysisResult> {
     throw new Error("Empty response from GPT-4o-mini");
   }
 
-  const parsedResult = JSON.parse(result);
-  console.log("GPT-4o-mini analysis result:", JSON.stringify(parsedResult, null, 2));
-  return parsedResult;
+  return JSON.parse(result);
 }
 
 async function analyzeWithGPT4o(prompt: string): Promise<AnalysisResult> {

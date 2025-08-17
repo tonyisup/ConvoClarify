@@ -11,9 +11,6 @@ interface AnalysisResultsProps {
 
 export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
   const [expandedIssues, setExpandedIssues] = useState<string[]>([]);
-  
-  // Debug: Log the analysis data to see what we're receiving
-  console.log("Analysis data received:", analysis);
 
   const toggleIssue = (issueId: string) => {
     setExpandedIssues(prev => 
@@ -61,20 +58,6 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
     }
   };
 
-  const highlightText = (text: string, issues: any[]) => {
-    let highlightedText = text;
-    issues.forEach((issue, index) => {
-      if (issue.highlightedText) {
-        const highlightClass = `highlight-${issue.type}`;
-        highlightedText = highlightedText.replace(
-          issue.highlightedText,
-          `<mark class="${highlightClass}" data-issue-id="${issue.id}" title="Click to see analysis">${issue.highlightedText}</mark>`
-        );
-      }
-    });
-    return highlightedText;
-  };
-
   const getSpeakerColor = (speaker: string, index: number) => {
     const colors = ["text-primary", "text-green-600", "text-purple-600", "text-orange-600"];
     return colors[index % colors.length];
@@ -102,15 +85,21 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
           {/* Analysis Summary */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-red-600">{analysis.summary?.criticalIssues || 0}</div>
+              <div className="text-2xl font-bold text-red-600">
+                {analysis.issues?.filter((issue: any) => issue.severity === 'critical').length || 0}
+              </div>
               <div className="text-sm text-red-700">Critical Issues</div>
             </div>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">{analysis.summary?.moderateIssues || 0}</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {analysis.issues?.filter((issue: any) => issue.severity === 'moderate').length || 0}
+              </div>
               <div className="text-sm text-yellow-700">Moderate Issues</div>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{analysis.summary?.minorIssues || 0}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {analysis.issues?.filter((issue: any) => issue.severity === 'minor').length || 0}
+              </div>
               <div className="text-sm text-blue-700">Minor Issues</div>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
@@ -121,7 +110,7 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
 
           {/* Issue Categories */}
           <div className="flex flex-wrap gap-2">
-            {analysis.summary?.mainCategories?.map((category: string, index: number) => (
+            {Array.from(new Set(analysis.issues?.map((issue: any) => issue.type) || [])).map((category: string, index: number) => (
               <Badge key={`${category}-${index}`} variant="secondary" className="inline-flex items-center px-3 py-1">
                 <span className="mr-1">{getCategoryIcon(category)}</span>
                 {getCategoryLabel(category)}
@@ -147,60 +136,47 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
                     <span className="text-xs text-gray-500">{message.timestamp}</span>
                   )}
                 </div>
-                <div 
-                  className="text-gray-800"
-                  dangerouslySetInnerHTML={{ 
-                    __html: highlightText(message.content, analysis.issues || []) 
-                  }}
-                />
+                <div className="text-gray-800">
+                  {message.content}
+                </div>
               </div>
             ))}
-          </div>
-
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
-            <span className="mr-1">ℹ️</span>
-            Click on highlighted text to see detailed analysis. Colors indicate severity: 
-            <span className="bg-red-100 px-1 rounded ml-1">Critical</span>
-            <span className="bg-yellow-100 px-1 rounded ml-1">Moderate</span>
-            <span className="bg-blue-100 px-1 rounded ml-1">Minor</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Detailed Issue Analysis */}
       <div className="space-y-4">
-        {analysis.issues?.map((issue: any) => (
-          <Card key={issue.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
+        {analysis.issues?.map((issue: any, index: number) => (
+          <Card key={`issue-${index}`} className="bg-white rounded-xl shadow-sm border border-gray-200">
             <CardContent className="p-6">
               <Collapsible 
-                open={expandedIssues.includes(issue.id)}
-                onOpenChange={() => toggleIssue(issue.id)}
+                open={expandedIssues.includes(`issue-${index}`)}
+                onOpenChange={() => toggleIssue(`issue-${index}`)}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 bg-${getSeverityColor(issue.type)}-100 rounded-full flex items-center justify-center`}>
-                      {getSeverityIcon(issue.type)}
+                    <div className={`w-10 h-10 bg-${getSeverityColor(issue.severity)}-100 rounded-full flex items-center justify-center`}>
+                      {getSeverityIcon(issue.severity)}
                     </div>
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900">{issue.title}</h4>
+                      <h4 className="text-lg font-semibold text-gray-900">{getCategoryLabel(issue.type)}</h4>
                       <div className="flex items-center space-x-2 mt-1">
                         <Badge 
-                          variant={issue.type === "critical" ? "destructive" : "secondary"}
+                          variant={issue.severity === "critical" ? "destructive" : "secondary"}
                           className={`capitalize`}
                         >
-                          {issue.type}
+                          {issue.severity}
                         </Badge>
-                        {issue.lineNumbers && (
-                          <span className="text-sm text-gray-500">
-                            Lines {issue.lineNumbers.join(", ")}
-                          </span>
-                        )}
+                        <span className="text-sm text-gray-500">
+                          {issue.location}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
-                      {expandedIssues.includes(issue.id) ? (
+                      {expandedIssues.includes(`issue-${index}`) ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
                         <ChevronDown className="w-4 h-4" />
@@ -215,41 +191,20 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
                     <p className="text-gray-700 text-sm leading-relaxed">{issue.description}</p>
                   </div>
 
-                  {issue.whyConfusing && issue.whyConfusing.length > 0 && (
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-2">Why This Causes Confusion</h5>
-                      <ul className="text-sm text-gray-700 space-y-1">
-                        {issue.whyConfusing.map((reason: string, index: number) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0" />
-                            <span>{reason}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <div>
+                    <h5 className="font-medium text-gray-900 mb-2 flex items-center">
+                      <Lightbulb className="w-4 h-4 mr-1 text-yellow-500" />
+                      Suggestion
+                    </h5>
+                    <p className="text-gray-700 text-sm leading-relaxed bg-yellow-50 p-3 rounded-lg">
+                      {issue.suggestion}
+                    </p>
+                  </div>
 
-                  {issue.speakerInterpretations && issue.speakerInterpretations.length > 0 && (
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-2">Different Interpretations</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        {issue.speakerInterpretations.map((interp: any, index: number) => (
-                          <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <h6 className="font-medium text-blue-900 mb-1">{interp.speaker}'s Interpretation</h6>
-                            <p className="text-blue-700">{interp.interpretation}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {issue.suggestedImprovement && (
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-2">Suggested Improvement</h5>
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-sm text-green-800 font-medium mb-1">Better phrasing:</p>
-                        <p className="text-sm text-green-700 italic">{issue.suggestedImprovement}</p>
-                      </div>
+                  {issue.confidence && (
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <Target className="w-4 h-4" />
+                      <span>Confidence: {Math.round(issue.confidence * 100)}%</span>
                     </div>
                   )}
                 </CollapsibleContent>
@@ -259,60 +214,86 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
         ))}
       </div>
 
-      {/* Recommendations */}
-      <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                <Lightbulb className="text-yellow-500 mr-2 w-5 h-5" />
-                Communication Best Practices
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-start space-x-2">
-                  <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <span>Define specific terms and references</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <span>Ask clarifying questions when uncertain</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <span>Use "I" statements to express concerns</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                  <span>Summarize understanding before proceeding</span>
-                </li>
-              </ul>
+      {/* AI Summary and Insights */}
+      {analysis.summary && (
+        <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Analysis Summary</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {analysis.summary.keyInsights && analysis.summary.keyInsights.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                    <Lightbulb className="text-yellow-500 mr-2 w-5 h-5" />
+                    Key Insights
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    {analysis.summary.keyInsights.map((insight: string, index: number) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <div className="w-1 h-1 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
+                        <span>{insight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {analysis.summary.recommendations && analysis.summary.recommendations.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                    <Target className="text-blue-500 mr-2 w-5 h-5" />
+                    Recommendations
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    {analysis.summary.recommendations.map((rec: string, index: number) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <span className="bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">{index + 1}</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             
+            {analysis.summary.communicationPatterns && analysis.summary.communicationPatterns.length > 0 && (
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 mb-3">Communication Patterns Observed</h4>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.summary.communicationPatterns.map((pattern: string, index: number) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {pattern}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Overall Assessment */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Assessment</h3>
+          <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                <Target className="text-blue-500 mr-2 w-5 h-5" />
-                Next Steps
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-start space-x-2">
-                  <span className="bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">1</span>
-                  <span>Address the most critical issues first</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">2</span>
-                  <span>Clarify ambiguous terms and references</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">3</span>
-                  <span>Establish shared understanding</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">4</span>
-                  <span>Schedule follow-up to ensure alignment</span>
-                </li>
-              </ul>
+              <p className="text-sm text-gray-700 mb-2">
+                This conversation has a clarity score of <span className="font-bold text-lg">{analysis.clarityScore}%</span>
+              </p>
+              <p className="text-xs text-gray-600">
+                {analysis.clarityScore >= 80 
+                  ? "Excellent communication with minimal issues" 
+                  : analysis.clarityScore >= 60 
+                  ? "Good communication with some areas for improvement"
+                  : "Communication needs significant improvement"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-600 mb-1">Issues found:</p>
+              <div className="text-2xl font-bold text-gray-800">
+                {analysis.issues?.length || 0}
+              </div>
             </div>
           </div>
         </CardContent>

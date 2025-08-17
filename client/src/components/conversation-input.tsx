@@ -228,26 +228,40 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
     }
   };
   const handleGlobalPaste = async () => {
-    if (inputMode === "text") {
-      handleTextPaste();
-    } else {
-      try {
-        const clipboardItems = await navigator.clipboard.read();
-        
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      
+      // Check if clipboard contains image data
+      const hasImage = clipboardItems.some(item => 
+        item.types.some(type => type.startsWith('image/'))
+      );
+      
+      if (hasImage) {
+        // Auto-switch to image mode and handle image paste
+        setInputMode("image");
         const clipboardData = {
           items: clipboardItems.map(item => ({
-            type: item.types[0],
-            getAsFile: () => item.getType(item.types[0]).then(blob => new File([blob], "clipboard-image", { type: blob.type })),
+            type: item.types.find(type => type.startsWith('image/')) || item.types[0],
+            getAsFile: () => {
+              const imageType = item.types.find(type => type.startsWith('image/')) || item.types[0];
+              return item.getType(imageType).then(blob => new File([blob], "clipboard-image", { type: blob.type }));
+            },
           })),
         };
         handleImagePaste(await clipboardData.items[0].getAsFile());
-      } catch (error) {
         toast({
-          title: "Failed to access clipboard",
-          description: "Could not read clipboard image.",
-          variant: "destructive",
+          title: "Image detected",
+          description: "Switched to screenshot mode and pasted image.",
         });
+      } else {
+        // Auto-switch to text mode and handle text paste
+        setInputMode("text");
+        handleTextPaste();
       }
+    } catch (error) {
+      // Fallback to text paste if clipboard.read() fails
+      setInputMode("text");
+      handleTextPaste();
     }
   };
 
@@ -280,10 +294,10 @@ export default function ConversationInput({ onAnalysisStart, onAnalysisComplete 
               size="sm" 
               onClick={handleGlobalPaste}
               className="text-sm text-gray-500 hover:text-gray-700"
-              data-testid="button-paste-text"
+              data-testid="button-paste-auto"
             >
               <Clipboard className="w-4 h-4 mr-1" />
-              Paste
+              Smart Paste
             </Button>
           </div>
 

@@ -16,6 +16,9 @@ ConversationClarify is a full-stack web application that analyzes conversations 
   - AI-generated insights and recommendations
   - Complete conversation parsing with speaker identification
   - Overall assessment and communication patterns
+- **Collapsible Input Interface**: Conversation input card automatically minimizes after analysis starts with toggle functionality for reference access
+- **Dark Mode Support**: Complete dark mode styling for analysis results with proper contrast and visual hierarchy
+- **Speaker Color Consistency**: Fixed speaker name colors to remain consistent per unique speaker throughout conversation analysis
 
 ## User Preferences
 

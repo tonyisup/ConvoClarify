@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertConversationSchema, insertAnalysisSchema } from "@shared/schema";
-import { analyzeConversation, extractTextFromImage } from "./ai-service";
+import { analyzeConversation, extractTextFromImage, parseConversation } from "./ai-service";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
 
@@ -143,7 +143,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId
       });
       const conversation = await storage.createConversation(validatedData);
-      res.json(conversation);
+      
+      // Parse the conversation to extract speakers and messages for the editor
+      try {
+        const parseResult = await parseConversation(conversationText, { 
+          model: req.body.aiModel || "gpt-4o-mini" 
+        });
+        
+        // Return conversation with parsed data for the editor
+        res.json({
+          ...conversation,
+          speakers: parseResult.speakers,
+          messages: parseResult.messages
+        });
+      } catch (parseError) {
+        console.error("Failed to parse conversation:", parseError);
+        // Return conversation without parsed data if parsing fails
+        res.json(conversation);
+      }
     } catch (error) {
       res.status(400).json({ 
         message: "Invalid conversation data", 

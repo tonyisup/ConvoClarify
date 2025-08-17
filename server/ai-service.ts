@@ -198,6 +198,52 @@ async function analyzeWithClaude(prompt: string): Promise<AnalysisResult> {
   return JSON.parse(result.text);
 }
 
+export async function parseConversation(
+  conversationText: string,
+  options: Pick<AnalysisOptions, 'model'>
+): Promise<{ speakers: string[], messages: Array<{ speaker: string; content: string; timestamp?: string }> }> {
+  const prompt = `Parse this conversation to identify speakers and individual messages. Return ONLY the JSON structure with speakers and messages, no analysis or issues.
+
+Please parse this conversation and return a JSON response with the following structure:
+{
+  "speakers": ["speaker1", "speaker2", ...],
+  "messages": [
+    {
+      "speaker": "speaker name",
+      "content": "message content",
+      "timestamp": "optional timestamp"
+    }
+  ]
+}
+
+Conversation to parse:
+${conversationText}`;
+
+  const response = await openai.chat.completions.create({
+    model: options.model || "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a conversation parser. Extract speakers and messages from conversations. Always respond with valid JSON containing only speakers and messages."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 1500,
+    temperature: 0.1,
+  });
+
+  const result = response.choices[0].message.content;
+  if (!result) {
+    throw new Error("Empty response from conversation parser");
+  }
+
+  return JSON.parse(result);
+}
+
 export async function extractTextFromImage(base64Image: string): Promise<string> {
   const response = await openai.chat.completions.create({
     model: "gpt-4o",

@@ -17,12 +17,12 @@ export const sessions = pgTable(
 // User storage table for multi-provider auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  email: varchar("email"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   authProvider: varchar("auth_provider").default("replit"), // replit, google
-  googleId: varchar("google_id"),
+  googleId: varchar("google_id").unique(),
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   subscriptionStatus: varchar("subscription_status").default("free"), // free, active, canceled, past_due

@@ -19,6 +19,7 @@ import { randomUUID } from "crypto";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserSubscription(userId: string, subscriptionData: {
     stripeCustomerId?: string;
@@ -53,7 +54,30 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // For Google users, check if user already exists by googleId
+    if (userData.authProvider === "google" && userData.googleId) {
+      const existingUser = await this.getUserByGoogleId(userData.googleId);
+      if (existingUser) {
+        // Update existing user
+        const [user] = await db
+          .update(users)
+          .set({
+            ...userData,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.googleId, userData.googleId))
+          .returning();
+        return user;
+      }
+    }
+    
+    // For new users or Replit users, use standard upsert by ID
     const [user] = await db
       .insert(users)
       .values(userData)

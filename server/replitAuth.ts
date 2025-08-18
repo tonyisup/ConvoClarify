@@ -69,8 +69,9 @@ async function upsertUser(
       authProvider: "replit",
     });
   } else if (provider === "google") {
+    // For Google users, generate a unique ID prefixed with "google_"
     await storage.upsertUser({
-      id: claims.id,
+      id: `google_${claims.id}`,
       email: claims.emails?.[0]?.value,
       firstName: claims.name?.givenName,
       lastName: claims.name?.familyName,
@@ -125,7 +126,7 @@ export async function setupAuth(app: Express) {
         await upsertUser(profile, "google");
         const user = {
           claims: {
-            sub: profile.id,
+            sub: `google_${profile.id}`,
             email: profile.emails?.[0]?.value,
             first_name: profile.name?.givenName,
             last_name: profile.name?.familyName,

@@ -42,6 +42,36 @@ const AI_MODELS = [
     accuracy: "Excellent",
     cost: "Medium",
     planRequired: "premium"
+  },
+  {
+    id: "meta-llama/llama-3-8b-instruct",
+    name: "Llama 3 8B",
+    description: "Fast and capable for many tasks",
+    icon: Zap,
+    speed: "Fast",
+    accuracy: "Good",
+    cost: "Low",
+    planRequired: "free"
+  },
+  {
+    id: "meta-llama/llama-3-70b-instruct",
+    name: "Llama 3 70B",
+    description: "State-of-the-art performance",
+    icon: Brain,
+    speed: "Slow",
+    accuracy: "Excellent",
+    cost: "High",
+    planRequired: "premium"
+  },
+  {
+    id: "mistralai/mistral-large",
+    name: "Mistral Large",
+    description: "Top-tier reasoning and knowledge",
+    icon: Brain,
+    speed: "Medium",
+    accuracy: "Excellent",
+    cost: "Medium",
+    planRequired: "pro"
   }
 ];
 
@@ -105,7 +135,7 @@ export default function AIModelSelector({
           <Select
             value={selectedModel}
             onValueChange={onModelChange}
-            disabled={disabled || !isPremium}
+            disabled={disabled}
           >
             <SelectTrigger data-testid="select-ai-model">
               <SelectValue placeholder="Select AI model" />
@@ -152,7 +182,7 @@ export default function AIModelSelector({
             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <p className="text-sm text-amber-800 dark:text-amber-200">
                 <Crown className="h-4 w-4 inline mr-1" />
-                Upgrade to Premium to access advanced AI models like GPT-4o and Claude 3.5 Sonnet
+                Upgrade to Pro or Premium to access advanced AI models like GPT-4o, Claude 3.5 Sonnet and Llama 3 70B.
               </p>
             </div>
           )}

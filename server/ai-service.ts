@@ -11,6 +11,16 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// Initialize OpenRouter
+const openrouter = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+  defaultHeaders: {
+    "HTTP-Referer": "https://replit.com/@merkle-groot/untangled",
+    "X-Title": "Untangled",
+  },
+});
+
 export interface AnalysisOptions {
   model: string;
   reasoningLevel: string;
@@ -112,7 +122,7 @@ export async function analyzeConversation(
       case "claude-3-5-sonnet":
         return await analyzeWithClaude(prompt);
       default:
-        return await analyzeWithGPT4oMini(prompt);
+        return await analyzeWithOpenRouter(prompt, options.model);
     }
   } catch (error) {
     console.error("Analysis error:", error);
@@ -196,6 +206,36 @@ async function analyzeWithClaude(prompt: string): Promise<AnalysisResult> {
   }
 
   return JSON.parse(result.text);
+}
+
+async function analyzeWithOpenRouter(prompt: string, model: string): Promise<AnalysisResult> {
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error("OpenRouter API key not configured");
+  }
+
+  const response = await openrouter.chat.completions.create({
+    model: model,
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert conversation analyst. Your goal is to provide insightful analysis of communication patterns and potential issues. Always respond with valid JSON."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 4000,
+    temperature: 0.2,
+  });
+
+  const result = response.choices[0].message.content;
+  if (!result) {
+    throw new Error(`Empty response from ${model}`);
+  }
+
+  return JSON.parse(result);
 }
 
 export async function parseConversation(

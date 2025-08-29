@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import TextSelectionHandler from "@/components/text-selection-handler";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import type { PainPointCategory } from "@shared/schema";
 
 interface AnalysisResultsProps {
   analysis: any;
@@ -11,6 +15,39 @@ interface AnalysisResultsProps {
 
 export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
   const [expandedIssues, setExpandedIssues] = useState<string[]>([]);
+  const { toast } = useToast();
+
+  const handleFeedbackSubmit = async (feedback: {
+    highlightedText: string;
+    textStartIndex: number;
+    textEndIndex: number;
+    painPointCategory: PainPointCategory;
+    additionalContext?: string;
+  }) => {
+    try {
+      await apiRequest("POST", "/api/feedback", {
+        conversationId: analysis.conversationId,
+        analysisId: analysis.id,
+        highlightedText: feedback.highlightedText,
+        textStartIndex: feedback.textStartIndex,
+        textEndIndex: feedback.textEndIndex,
+        painPointCategory: feedback.painPointCategory,
+        additionalContext: feedback.additionalContext,
+      });
+
+      toast({
+        title: "Feedback submitted",
+        description: "Thank you for helping us improve our analysis!",
+      });
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Get unique speakers to maintain consistent colors
   const uniqueSpeakers = Array.from(new Set(analysis.messages?.map((message: any) => message.speaker) || []));
@@ -135,25 +172,36 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
       {/* Conversation with Highlights */}
       <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <CardContent className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Analyzed Conversation</h3>
-          
-          <div className="space-y-4 font-mono text-sm leading-relaxed">
-            {analysis.messages?.map((message: any, index: number) => (
-              <div key={index} className="border-l-4 border-gray-200 dark:border-gray-600 pl-4 py-2">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className={`font-semibold ${getSpeakerColor(message.speaker, uniqueSpeakers)}`}>
-                    {message.speaker}
-                  </span>
-                  {message.timestamp && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{message.timestamp}</span>
-                  )}
-                </div>
-                <div className="text-gray-800 dark:text-gray-200">
-                  {message.content}
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Analyzed Conversation</h3>
+            <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+              💡 Highlight text to suggest pain points
+            </div>
           </div>
+          
+          <TextSelectionHandler
+            conversationId={analysis.conversationId}
+            analysisId={analysis.id}
+            onFeedbackSubmit={handleFeedbackSubmit}
+          >
+            <div className="space-y-4 font-mono text-sm leading-relaxed">
+              {(analysis.messages as any[])?.map((message: any, index: number) => (
+                <div key={index} className="border-l-4 border-gray-200 dark:border-gray-600 pl-4 py-2">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className={`font-semibold ${getSpeakerColor(message.speaker, uniqueSpeakers)}`}>
+                      {message.speaker}
+                    </span>
+                    {message.timestamp && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{message.timestamp}</span>
+                    )}
+                  </div>
+                  <div className="text-gray-800 dark:text-gray-200">
+                    {message.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TextSelectionHandler>
         </CardContent>
       </Card>
 

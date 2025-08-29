@@ -100,12 +100,42 @@ export const usageTracking = pgTable("usage_tracking", {
   month: varchar("month").notNull(), // YYYY-MM format for easy querying
 });
 
+// User feedback on pain points table
+export const userFeedback = pgTable("user_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  conversationId: varchar("conversation_id").notNull(),
+  analysisId: varchar("analysis_id"), // Optional - if feedback is on an analysis result
+  highlightedText: text("highlighted_text").notNull(),
+  textStartIndex: integer("text_start_index").notNull(), // Character position where highlight starts
+  textEndIndex: integer("text_end_index").notNull(), // Character position where highlight ends
+  painPointCategory: varchar("pain_point_category").notNull(), // The type of pain point user identified
+  additionalContext: text("additional_context"), // Optional additional notes from user
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertUserFeedbackSchema = createInsertSchema(userFeedback).pick({
+  userId: true,
+  conversationId: true,
+  analysisId: true,
+  highlightedText: true,
+  textStartIndex: true,
+  textEndIndex: true,
+  painPointCategory: true,
+  additionalContext: true,
+}).extend({
+  analysisId: z.string().optional(),
+  additionalContext: z.string().optional(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
 export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
 export type Analysis = typeof analyses.$inferSelect;
+export type InsertUserFeedback = z.infer<typeof insertUserFeedbackSchema>;
+export type UserFeedback = typeof userFeedback.$inferSelect;
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 export type UsageTracking = typeof usageTracking.$inferSelect;
 
@@ -139,3 +169,35 @@ export interface ConversationMessage {
   timestamp?: string;
   lineNumber: number;
 }
+
+// Pain point categories for user feedback
+export const PAIN_POINT_CATEGORIES = [
+  "assumption_gap",
+  "ambiguous_language", 
+  "tone_mismatch",
+  "implicit_meaning",
+  "unclear_reference",
+  "context_missing",
+  "emotional_disconnect",
+  "technical_jargon",
+  "cultural_misunderstanding",
+  "timing_confusion",
+  "other"
+] as const;
+
+export type PainPointCategory = typeof PAIN_POINT_CATEGORIES[number];
+
+// User-friendly labels for pain point categories
+export const PAIN_POINT_LABELS: Record<PainPointCategory, string> = {
+  assumption_gap: "Assumption Gap",
+  ambiguous_language: "Ambiguous Language",
+  tone_mismatch: "Tone Mismatch", 
+  implicit_meaning: "Implicit Meaning",
+  unclear_reference: "Unclear Reference",
+  context_missing: "Missing Context",
+  emotional_disconnect: "Emotional Disconnect",
+  technical_jargon: "Technical Jargon",
+  cultural_misunderstanding: "Cultural Misunderstanding",
+  timing_confusion: "Timing Confusion",
+  other: "Other"
+};

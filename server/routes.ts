@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertConversationSchema, insertAnalysisSchema } from "@shared/schema";
+import { insertConversationSchema, insertAnalysisSchema, insertUserFeedbackSchema } from "@shared/schema";
 import { analyzeConversation, extractTextFromImage, parseConversation } from "./ai-service";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
@@ -326,6 +326,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: "Failed to reanalyze conversation",
         error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Submit user feedback for pain points
+  app.post("/api/feedback", authMiddleware, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const validatedData = insertUserFeedbackSchema.parse({
+        ...req.body,
+        userId
+      });
+      
+      const feedback = await storage.createUserFeedback(validatedData);
+      
+      res.json({ 
+        success: true, 
+        message: "Feedback submitted successfully",
+        feedbackId: feedback.id 
+      });
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+      res.status(400).json({ 
+        message: "Failed to submit feedback", 
+        error: error instanceof Error ? error.message : "Unknown error" 
       });
     }
   });

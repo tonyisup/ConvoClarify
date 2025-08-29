@@ -5,11 +5,14 @@ import {
   type InsertAnalysis, 
   type User, 
   type UpsertUser,
+  type UserFeedback,
+  type InsertUserFeedback,
   type SubscriptionPlan,
   type UsageTracking,
   users, 
   conversations, 
   analyses,
+  userFeedback,
   subscriptionPlans,
   usageTracking
 } from "@shared/schema";
@@ -37,6 +40,9 @@ export interface IStorage {
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
   getAnalysisByConversationId(conversationId: string): Promise<Analysis | undefined>;
   deleteAnalysis(id: string): Promise<void>;
+  
+  // User feedback methods
+  createUserFeedback(feedback: InsertUserFeedback): Promise<UserFeedback>;
   
   // Subscription methods
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
@@ -138,6 +144,14 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAnalysis(id: string): Promise<void> {
     await db.delete(analyses).where(eq(analyses.id, id));
+  }
+
+  async createUserFeedback(insertFeedback: InsertUserFeedback): Promise<UserFeedback> {
+    const [feedback] = await db
+      .insert(userFeedback)
+      .values(insertFeedback)
+      .returning();
+    return feedback;
   }
 
   // Subscription methods

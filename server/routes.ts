@@ -124,16 +124,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let conversationText = req.body.text;
       
-      // If there's an image but no text, extract text from the image
-      if (req.body.imageUrl && (!conversationText || conversationText === "Text extracted from image")) {
+      // If there are images but no text, extract text from all images
+      if (req.body.imageUrls && req.body.imageUrls.length > 0 && (!conversationText || conversationText === "Text extracted from image")) {
         try {
-          // Extract base64 data from data URL
-          const base64Data = req.body.imageUrl.split(',')[1];
-          const extractedText = await extractTextFromImage(base64Data);
-          conversationText = extractedText || "No text could be extracted from the image";
+          const extractedTexts: string[] = [];
+          
+          for (let i = 0; i < req.body.imageUrls.length; i++) {
+            const imageUrl = req.body.imageUrls[i];
+            console.log(`Extracting text from image ${i + 1}/${req.body.imageUrls.length}`);
+            
+            try {
+              // Extract base64 data from data URL
+              const base64Data = imageUrl.split(',')[1];
+              const extractedText = await extractTextFromImage(base64Data);
+              
+              if (extractedText && extractedText.trim()) {
+                extractedTexts.push(`=== Screenshot ${i + 1} ===\n${extractedText}`);
+              } else {
+                extractedTexts.push(`=== Screenshot ${i + 1} ===\n[No text could be extracted from this image]`);
+              }
+            } catch (imageError) {
+              console.error(`Failed to extract text from image ${i + 1}:`, imageError);
+              extractedTexts.push(`=== Screenshot ${i + 1} ===\n[Error extracting text from this image]`);
+            }
+          }
+          
+          conversationText = extractedTexts.length > 0 
+            ? extractedTexts.join('\n\n') 
+            : "No text could be extracted from any of the images";
+            
         } catch (error) {
-          console.error("Failed to extract text from image:", error);
-          conversationText = "Error extracting text from image";
+          console.error("Failed to extract text from images:", error);
+          conversationText = "Error extracting text from images";
         }
       }
 

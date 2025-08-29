@@ -38,7 +38,7 @@ export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   text: text("text").notNull(),
-  imageUrl: text("image_url"), // Optional screenshot URL
+  imageUrls: jsonb("image_urls").$type<string[]>(), // Optional screenshot URLs array
   analysisDepth: text("analysis_depth").notNull().default("standard"),
   language: text("language").notNull().default("english"),
   aiModel: varchar("ai_model").default("gpt-4o-mini"), // gpt-4o-mini, gpt-4o, claude-3-5-sonnet
@@ -59,13 +59,13 @@ export const analyses = pgTable("analyses", {
 export const insertConversationSchema = createInsertSchema(conversations).pick({
   userId: true,
   text: true,
-  imageUrl: true,
+  imageUrls: true,
   analysisDepth: true,
   language: true,
   aiModel: true,
   reasoningLevel: true,
 }).extend({
-  imageUrl: z.string().optional(),
+  imageUrls: z.array(z.string()).optional(),
   aiModel: z.string().optional(),
   reasoningLevel: z.string().optional(),
 });

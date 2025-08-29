@@ -44,7 +44,7 @@ export default function ConversationInput({
   setAnalysisStep: externalSetAnalysisStep
 }: ConversationInputProps) {
   const [conversationText, setConversationText] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [inputMode, setInputMode] = useState<"text" | "image">("text");
   const [analysisDepth, setAnalysisDepth] = useState("deep");
   const [language, setLanguage] = useState("english");
@@ -119,7 +119,7 @@ export default function ConversationInput({
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64String = event.target?.result as string;
-        setSelectedImage(base64String);
+        setSelectedImages(prev => [...prev, base64String]);
         setInputMode("image");
         
         toast({
@@ -154,7 +154,7 @@ export default function ConversationInput({
         const reader = new FileReader();
         reader.onload = (event) => {
           const base64String = event.target?.result as string;
-          setSelectedImage(base64String);
+          setSelectedImages(prev => [...prev, base64String]);
           setInputMode("image");
           
           toast({
@@ -176,7 +176,7 @@ export default function ConversationInput({
   const createConversationMutation = useMutation({
     mutationFn: async (data: { 
       text: string; 
-      imageUrl?: string; 
+      imageUrls?: string[]; 
       analysisDepth: string; 
       language: string;
       aiModel?: string;
@@ -195,7 +195,7 @@ export default function ConversationInput({
   });
 
   const handleAnalyze = async () => {
-    if (!conversationText.trim() && !selectedImage) {
+    if (!conversationText.trim() && selectedImages.length === 0) {
       toast({
         title: "Error",
         description: "Please enter a conversation or upload a screenshot to analyze.",
@@ -211,15 +211,15 @@ export default function ConversationInput({
       setAnalysisStep(1); // Step 1: Parsing speakers & messages
 
       // Track conversation upload
-      analytics.trackConversationUploaded(selectedImage ? 'image' : 'text');
+      analytics.trackConversationUploaded(selectedImages.length > 0 ? 'image' : 'text');
       
       // Track analysis start
-      analytics.trackAnalysisStarted(analysisDepth, language, !!selectedImage);
+      analytics.trackAnalysisStarted(analysisDepth, language, selectedImages.length > 0);
 
       // Create conversation
       const conversation = await createConversationMutation.mutateAsync({
         text: conversationText || "Text extracted from image",
-        imageUrl: selectedImage || undefined,
+        imageUrls: selectedImages.length > 0 ? selectedImages : undefined,
         analysisDepth,
         language,
         aiModel,
@@ -240,7 +240,7 @@ export default function ConversationInput({
       // Track error
       analytics.trackError("analysis_failed", {
         error_details: error instanceof Error ? error.message : "Unknown error",
-        has_image: !!selectedImage,
+        has_image: selectedImages.length > 0,
         analysis_depth: analysisDepth,
         language: language,
       });
@@ -451,11 +451,10 @@ John: What do you mean by reasonable? I thought you were on board.`}
                 onDrop={handleDrop}
                 onPaste={handlePaste}
               >
-                <Label className="block text-sm font-medium text-gray-300 dark:text-white mb-2">Upload Screenshot</Label>
+                <Label className="block text-sm font-medium text-gray-300 dark:text-white mb-2">Upload Screenshots</Label>
                 <ImageUpload
-                  onImageSelect={setSelectedImage}
-                  onImageRemove={() => setSelectedImage(null)}
-                  selectedImage={selectedImage}
+                  onImagesChange={setSelectedImages}
+                  selectedImages={selectedImages}
                 />
                 {/* <p className="text-xs text-gray-500 mt-2">
                   💡 Tip: Works with screenshots from WhatsApp, Discord, Slack, Teams, and other messaging apps<br/>
@@ -512,7 +511,7 @@ John: What do you mean by reasonable? I thought you were on board.`}
                   <>
                     <Search className="w-4 h-4" />
                     <span>
-                      {selectedImage ? "Analyze Screenshot" : "Analyze Conversation"}
+                      {selectedImages.length > 0 ? `Analyze ${selectedImages.length} Screenshot${selectedImages.length > 1 ? 's' : ''}` : "Analyze Conversation"}
                     </span>
                   </>
                 )}
@@ -527,22 +526,32 @@ John: What do you mean by reasonable? I thought you were on board.`}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-gray-700 dark:text-gray-300 font-medium">
-                  {selectedImage ? "📷 Screenshot uploaded" : "💬 Text conversation"}
+                  {selectedImages.length > 0 ? `📷 ${selectedImages.length} Screenshot${selectedImages.length > 1 ? 's' : ''} uploaded` : "💬 Text conversation"}
                 </span>
                 <span className="text-gray-500 dark:text-gray-400 text-xs">
                   {analysisDepth === "deep" ? "Deep Analysis" : "Context-Aware Analysis"}
                 </span>
               </div>
-              {selectedImage && (
+              {selectedImages.length > 0 && (
                 <div className="mt-2">
-                  <img 
-                    src={selectedImage} 
-                    alt="Uploaded screenshot"
-                    className="max-w-full h-20 object-cover rounded border"
-                  />
+                  <div className="flex space-x-2">
+                    {selectedImages.slice(0, 3).map((image, index) => (
+                      <img 
+                        key={index}
+                        src={image} 
+                        alt={`Screenshot ${index + 1}`}
+                        className="w-16 h-20 object-cover rounded border"
+                      />
+                    ))}
+                    {selectedImages.length > 3 && (
+                      <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded border flex items-center justify-center text-xs text-gray-600 dark:text-gray-400">
+                        +{selectedImages.length - 3}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-              {conversationText && !selectedImage && (
+              {conversationText && selectedImages.length === 0 && (
                 <div className="mt-2 text-gray-600 dark:text-gray-400 text-xs truncate">
                   {conversationText.substring(0, 100)}...
                 </div>

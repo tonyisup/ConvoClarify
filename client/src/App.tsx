@@ -10,6 +10,7 @@ import Landing from "@/pages/landing";
 import Subscription from "@/pages/subscription";
 import HistoryPage from "@/pages/history";
 import AnalysisViewPage from "@/pages/analysis-view";
+import SharedAnalysisPage from "@/pages/shared-analysis";
 import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
@@ -27,6 +28,8 @@ function Router() {
           <Route path="/subscription" component={Subscription} />
         </>
       )}
+      {/* Public routes (no auth required) */}
+      <Route path="/shared/:token" component={SharedAnalysisPage} />
       <Route component={NotFound} />
     </Switch>
   );

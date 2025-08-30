@@ -7,12 +7,15 @@ import {
   type UpsertUser,
   type UserFeedback,
   type InsertUserFeedback,
+  type SharedAnalysis,
+  type InsertSharedAnalysis,
   type SubscriptionPlan,
   type UsageTracking,
   users, 
   conversations, 
   analyses,
   userFeedback,
+  sharedAnalyses,
   subscriptionPlans,
   usageTracking
 } from "@shared/schema";
@@ -44,6 +47,11 @@ export interface IStorage {
   
   // User feedback methods
   createUserFeedback(feedback: InsertUserFeedback): Promise<UserFeedback>;
+  
+  // Sharing methods
+  createSharedAnalysis(share: InsertSharedAnalysis): Promise<SharedAnalysis>;
+  getSharedAnalysis(shareToken: string): Promise<{ conversation: Conversation; analysis: Analysis; share: SharedAnalysis } | undefined>;
+  incrementShareViewCount(shareToken: string): Promise<void>;
   
   // Subscription methods
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
@@ -203,6 +211,105 @@ export class DatabaseStorage implements IStorage {
       .values(insertFeedback)
       .returning();
     return feedback;
+  }
+
+  // Sharing methods
+  async createSharedAnalysis(insertShare: InsertSharedAnalysis): Promise<SharedAnalysis> {
+    const [share] = await db
+      .insert(sharedAnalyses)
+      .values(insertShare)
+      .returning();
+    return share;
+  }
+
+  async getSharedAnalysis(shareToken: string): Promise<{ conversation: Conversation; analysis: Analysis; share: SharedAnalysis } | undefined> {
+    const result = await db
+      .select({
+        // Conversation fields
+        conversationId: conversations.id,
+        conversationUserId: conversations.userId,
+        conversationText: conversations.text,
+        conversationImageUrls: conversations.imageUrls,
+        conversationAnalysisDepth: conversations.analysisDepth,
+        conversationLanguage: conversations.language,
+        conversationAiModel: conversations.aiModel,
+        conversationReasoningLevel: conversations.reasoningLevel,
+        conversationCreatedAt: conversations.createdAt,
+        
+        // Analysis fields
+        analysisId: analyses.id,
+        analysisConversationId: analyses.conversationId,
+        analysisSpeakers: analyses.speakers,
+        analysisIssues: analyses.issues,
+        analysisSummary: analyses.summary,
+        analysisClarityScore: analyses.clarityScore,
+        analysisCreatedAt: analyses.createdAt,
+        
+        // Share fields
+        shareId: sharedAnalyses.id,
+        shareToken: sharedAnalyses.shareToken,
+        shareCreatedBy: sharedAnalyses.createdBy,
+        shareIsActive: sharedAnalyses.isActive,
+        shareExpiresAt: sharedAnalyses.expiresAt,
+        shareViewCount: sharedAnalyses.viewCount,
+        shareCreatedAt: sharedAnalyses.createdAt,
+      })
+      .from(sharedAnalyses)
+      .innerJoin(conversations, eq(sharedAnalyses.conversationId, conversations.id))
+      .innerJoin(analyses, eq(sharedAnalyses.analysisId, analyses.id))
+      .where(and(
+        eq(sharedAnalyses.shareToken, shareToken),
+        eq(sharedAnalyses.isActive, true)
+      ));
+
+    if (result.length === 0) {
+      return undefined;
+    }
+
+    const row = result[0];
+    
+    return {
+      conversation: {
+        id: row.conversationId,
+        userId: row.conversationUserId,
+        text: row.conversationText,
+        imageUrls: row.conversationImageUrls,
+        analysisDepth: row.conversationAnalysisDepth,
+        language: row.conversationLanguage,
+        aiModel: row.conversationAiModel,
+        reasoningLevel: row.conversationReasoningLevel,
+        createdAt: row.conversationCreatedAt,
+      },
+      analysis: {
+        id: row.analysisId,
+        conversationId: row.analysisConversationId,
+        speakers: row.analysisSpeakers,
+        issues: row.analysisIssues,
+        summary: row.analysisSummary,
+        clarityScore: row.analysisClarityScore,
+        createdAt: row.analysisCreatedAt,
+      },
+      share: {
+        id: row.shareId,
+        conversationId: row.conversationId,
+        analysisId: row.analysisId,
+        shareToken: row.shareToken,
+        createdBy: row.shareCreatedBy,
+        isActive: row.shareIsActive,
+        expiresAt: row.shareExpiresAt,
+        viewCount: row.shareViewCount,
+        createdAt: row.shareCreatedAt,
+      }
+    };
+  }
+
+  async incrementShareViewCount(shareToken: string): Promise<void> {
+    await db
+      .update(sharedAnalyses)
+      .set({
+        viewCount: sql`${sharedAnalyses.viewCount} + 1`,
+      })
+      .where(eq(sharedAnalyses.shareToken, shareToken));
   }
 
   // Subscription methods

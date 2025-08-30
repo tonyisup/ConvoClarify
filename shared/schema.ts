@@ -114,6 +114,19 @@ export const userFeedback = pgTable("user_feedback", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Shared analysis links table
+export const sharedAnalyses = pgTable("shared_analyses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull(),
+  analysisId: varchar("analysis_id").notNull(),
+  shareToken: varchar("share_token").notNull().unique(),
+  createdBy: varchar("created_by").notNull(), // userId who created the share
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserFeedbackSchema = createInsertSchema(userFeedback).pick({
   userId: true,
   conversationId: true,
@@ -128,6 +141,16 @@ export const insertUserFeedbackSchema = createInsertSchema(userFeedback).pick({
   additionalContext: z.string().optional(),
 });
 
+export const insertSharedAnalysisSchema = createInsertSchema(sharedAnalyses).pick({
+  conversationId: true,
+  analysisId: true,
+  shareToken: true,
+  createdBy: true,
+  expiresAt: true,
+}).extend({
+  expiresAt: z.date().optional(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
@@ -136,6 +159,8 @@ export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
 export type Analysis = typeof analyses.$inferSelect;
 export type InsertUserFeedback = z.infer<typeof insertUserFeedbackSchema>;
 export type UserFeedback = typeof userFeedback.$inferSelect;
+export type InsertSharedAnalysis = z.infer<typeof insertSharedAnalysisSchema>;
+export type SharedAnalysis = typeof sharedAnalyses.$inferSelect;
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 export type UsageTracking = typeof usageTracking.$inferSelect;
 

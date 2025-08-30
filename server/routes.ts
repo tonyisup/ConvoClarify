@@ -1,10 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertConversationSchema, insertAnalysisSchema, insertUserFeedbackSchema } from "@shared/schema";
+import { insertConversationSchema, insertAnalysisSchema, insertUserFeedbackSchema, insertSharedAnalysisSchema } from "@shared/schema";
 import { analyzeConversation, extractTextFromImage, parseConversation } from "./ai-service";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
+import { randomBytes } from "crypto";
 
 // Development authentication bypass
 const devAuthBypass = (req: any, res: any, next: any) => {
@@ -365,6 +366,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Failed to submit feedback:", error);
       res.status(400).json({ 
         message: "Failed to submit feedback", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Create a shareable link for an analysis
+  app.post("/api/conversations/:id/share", authMiddleware, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const conversationId = req.params.id;
+      
+      // Verify user owns the conversation
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation || conversation.userId !== userId) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Verify analysis exists
+      const analysis = await storage.getAnalysisByConversationId(conversationId);
+      if (!analysis) {
+        return res.status(404).json({ message: "Analysis not found" });
+      }
+      
+      // Generate unique share token
+      const shareToken = randomBytes(32).toString('hex');
+      
+      const shareData = insertSharedAnalysisSchema.parse({
+        conversationId,
+        analysisId: analysis.id,
+        shareToken,
+        createdBy: userId,
+      });
+      
+      const share = await storage.createSharedAnalysis(shareData);
+      
+      res.json({ 
+        shareToken: share.shareToken,
+        shareUrl: `${req.protocol}://${req.get('host')}/shared/${share.shareToken}`,
+        message: "Share link created successfully"
+      });
+    } catch (error) {
+      console.error("Failed to create share:", error);
+      res.status(500).json({ 
+        message: "Failed to create share link", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Get shared analysis (no auth required)
+  app.get("/api/shared/:shareToken", async (req, res) => {
+    try {
+      const shareToken = req.params.shareToken;
+      
+      const sharedData = await storage.getSharedAnalysis(shareToken);
+      if (!sharedData) {
+        return res.status(404).json({ message: "Shared analysis not found or expired" });
+      }
+      
+      // Increment view count
+      await storage.incrementShareViewCount(shareToken);
+      
+      res.json({
+        conversation: sharedData.conversation,
+        analysis: sharedData.analysis,
+        shareInfo: {
+          viewCount: sharedData.share.viewCount + 1,
+          createdAt: sharedData.share.createdAt,
+        }
+      });
+    } catch (error) {
+      console.error("Failed to get shared analysis:", error);
+      res.status(500).json({ 
+        message: "Failed to retrieve shared analysis", 
         error: error instanceof Error ? error.message : "Unknown error" 
       });
     }

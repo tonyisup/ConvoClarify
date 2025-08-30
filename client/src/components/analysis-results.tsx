@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Clock, AlertTriangle, HelpCircle, MessageSquare, ChevronDown, ChevronUp, Target, Lightbulb } from "lucide-react";
+import { Download, Clock, AlertTriangle, HelpCircle, MessageSquare, ChevronDown, ChevronUp, Target, Lightbulb, Share2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ interface AnalysisResultsProps {
 
 export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
   const [expandedIssues, setExpandedIssues] = useState<string[]>([]);
+  const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
 
   const handleFeedbackSubmit = async (feedback: {
@@ -46,6 +47,32 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
         description: "Failed to submit feedback. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      const response = await apiRequest("POST", `/api/conversations/${analysis.conversationId}/share`, {});
+      
+      const { shareUrl } = response;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      
+      toast({
+        title: "Share link copied!",
+        description: "Anyone with this link can view your analysis results.",
+      });
+    } catch (error) {
+      console.error("Failed to create share:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create share link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -124,6 +151,21 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
                 <Clock className="w-4 h-4 mr-1" />
                 Analyzed just now
               </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-sm text-primary hover:text-blue-700 font-medium"
+                onClick={handleShare}
+                disabled={isSharing}
+                data-testid="button-share-analysis"
+              >
+                {isSharing ? (
+                  <Copy className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4 mr-1" />
+                )}
+                {isSharing ? "Creating Link..." : "Share"}
+              </Button>
               <Button variant="ghost" size="sm" className="text-sm text-primary hover:text-blue-700 font-medium">
                 <Download className="w-4 h-4 mr-1" />
                 Export Report

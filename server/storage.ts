@@ -17,7 +17,7 @@ import {
   usageTracking
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, count } from "drizzle-orm";
+import { eq, and, gte, count, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -35,6 +35,7 @@ export interface IStorage {
   // Conversation methods
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversation(id: string): Promise<Conversation | undefined>;
+  getUserConversationHistory(userId: string): Promise<(Conversation & { analysis?: Analysis })[]>;
   
   // Analysis methods
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
@@ -127,6 +128,56 @@ export class DatabaseStorage implements IStorage {
   async getConversation(id: string): Promise<Conversation | undefined> {
     const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
     return conversation;
+  }
+
+  async getUserConversationHistory(userId: string): Promise<(Conversation & { analysis?: Analysis })[]> {
+    // Get conversations with their analyses joined
+    const result = await db
+      .select({
+        // Conversation fields
+        id: conversations.id,
+        userId: conversations.userId,
+        text: conversations.text,
+        imageUrls: conversations.imageUrls,
+        analysisDepth: conversations.analysisDepth,
+        language: conversations.language,
+        aiModel: conversations.aiModel,
+        reasoningLevel: conversations.reasoningLevel,
+        createdAt: conversations.createdAt,
+        // Analysis fields (optional)
+        analysisId: analyses.id,
+        speakers: analyses.speakers,
+        issues: analyses.issues,
+        summary: analyses.summary,
+        clarityScore: analyses.clarityScore,
+        analysisCreatedAt: analyses.createdAt,
+      })
+      .from(conversations)
+      .leftJoin(analyses, eq(conversations.id, analyses.conversationId))
+      .where(eq(conversations.userId, userId))
+      .orderBy(desc(conversations.createdAt));
+
+    // Transform the flat result into the expected format
+    return result.map(row => ({
+      id: row.id,
+      userId: row.userId,
+      text: row.text,
+      imageUrls: row.imageUrls,
+      analysisDepth: row.analysisDepth,
+      language: row.language,
+      aiModel: row.aiModel,
+      reasoningLevel: row.reasoningLevel,
+      createdAt: row.createdAt,
+      analysis: row.analysisId ? {
+        id: row.analysisId,
+        conversationId: row.id,
+        speakers: row.speakers!,
+        issues: row.issues!,
+        summary: row.summary!,
+        clarityScore: row.clarityScore!,
+        createdAt: row.analysisCreatedAt!,
+      } : undefined,
+    }));
   }
 
   async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {

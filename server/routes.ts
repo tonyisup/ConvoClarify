@@ -191,6 +191,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's conversation history
+  app.get("/api/conversations", authMiddleware, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const history = await storage.getUserConversationHistory(userId);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ 
+        message: "Failed to retrieve conversation history",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Get a conversation by ID
   app.get("/api/conversations/:id", async (req, res) => {
     try {

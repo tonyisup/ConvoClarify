@@ -54,8 +54,13 @@ export default function AnalysisResults({ analysis }: AnalysisResultsProps) {
     setIsSharing(true);
     try {
       const response = await apiRequest("POST", `/api/conversations/${analysis.conversationId}/share`, {});
+      const data = await response.json();
       
-      const { shareUrl } = response;
+      const { shareUrl } = data;
+      
+      if (!shareUrl) {
+        throw new Error("No share URL received from server");
+      }
       
       // Copy to clipboard
       await navigator.clipboard.writeText(shareUrl);

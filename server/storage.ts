@@ -20,7 +20,7 @@ import {
   usageTracking
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, count, desc } from "drizzle-orm";
+import { eq, and, gte, count, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {

@@ -9,6 +9,7 @@ import Home from "@/pages/home.tsx";
 import Landing from "@/pages/landing";
 import Subscription from "@/pages/subscription";
 import HistoryPage from "@/pages/history";
+import AnalysisViewPage from "@/pages/analysis-view";
 import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/history" component={HistoryPage} />
+          <Route path="/analysis/:id" component={AnalysisViewPage} />
           <Route path="/subscription" component={Subscription} />
         </>
       )}
